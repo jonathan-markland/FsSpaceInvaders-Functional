@@ -314,11 +314,9 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
 
     let ConsiderRemovingExplosions oldExplosions =
 
-        let survivingExplosions = oldExplosions |> List.filter (fun e ->     // TODO: Prepare to return same list favouring no removals
+        oldExplosions |> List.filter (fun e ->     // TODO: Prepare to return same list favouring no removals
             let elapsedSinceExplosionStarted = timeNow --- e.StartTime
             elapsedSinceExplosionStarted < TimeForWholeExplosion)
-
-        survivingExplosions
 
     let MoveInvaders oldInvaders =
  
@@ -374,10 +372,7 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
                 StartTime = timeNow
             }
 
-        let newExplosionsList =
-            shipExplosion :: oldExplosions
-
-        newExplosionsList
+        shipExplosion :: oldExplosions
 
     let NoInvadersLeft (invaders:Invader list) =
 
@@ -401,8 +396,8 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
             bombs |> List.exists (fun bomb -> bomb |> collidedWithShip)
 
         InvaderAtLowestLevel invaders
-        || ShipCollidedWithInvader shipExtents invaders
-        || ShipCollidedWithBomb shipExtents bombs
+            || ShipCollidedWithInvader shipExtents invaders
+            || ShipCollidedWithBomb shipExtents bombs
 
     match oldWorld.PlayEndedYet with // TODO: I really don't like this design.  Introduce a "Screen" to handle the little bit of animation extra-time needed before we switch.
 
