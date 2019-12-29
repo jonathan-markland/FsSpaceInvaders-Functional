@@ -126,7 +126,10 @@ let NextLevelGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
 
 
 
-type FrameResult = GameContinuing | PlayerWon | PlayerLost
+type FrameResult = 
+    | GameContinuing of GameWorld 
+    | PlayerWon of GameWorld
+    | PlayerLost of GameWorld
 
 
 
@@ -176,13 +179,12 @@ let NewBombPositionedCentrallyUnder someRectangle =
 
 
 
-let CalculateNextFrameState (world:GameWorld) (input:InputEventData) (timeNow:TickCount) =
+let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow:TickCount) =
 
-    let elapsedTime = timeNow --- world.GameStartTime
+    let elapsedTime = timeNow --- oldWorld.GameStartTime
 
-    let RandomInvader () =  // TODO: This exhibits really bad gameplay
+    let RandomInvader invadersList =  // TODO: This exhibits really bad gameplay
 
-        let invadersList = world.Invaders
         match invadersList with
             | [] ->
                 None
@@ -192,82 +194,91 @@ let CalculateNextFrameState (world:GameWorld) (input:InputEventData) (timeNow:Ti
                 let selectedIndex = int (ticks % uint32 countLeft)
                 Some(invadersList |> List.item selectedIndex)
 
-    let IncreaseScoreBy n =
+    let MoveShip oldShipExtents =
 
-        let newValue = world.PlayStats.ScoreAndHiScore |> IncrementScoreBy n
-        world.PlayStats.ScoreAndHiScore <- newValue
+        let movementStep =  
+            if input.LeftHeld && input.RightHeld then
+                0<wu>
+            elif input.LeftHeld && (HorizontalCentreOf oldShipExtents) > ShipCentreLeftmostX then
+                -ShipMovementStep
+            elif input.RightHeld && (HorizontalCentreOf oldShipExtents) < ShipCentreRightmostX then
+                ShipMovementStep
+            else
+                0<wu>
 
-    let MoveShip () =
+        oldShipExtents |> RectangleShuntedBy movementStep 0<wu>
+        // TODO: assign to world.Ship.ShipExtents
 
-        if input.LeftHeld && (HorizontalCentreOf world.Ship.ShipExtents) > ShipCentreLeftmostX then
-            world.Ship.ShipExtents <- world.Ship.ShipExtents |> RectangleShuntedBy -ShipMovementStep 0<wu>
+    let ConsiderBulletFiring oldBullets oldWeaponReload =
 
-        if input.RightHeld && (HorizontalCentreOf world.Ship.ShipExtents) < ShipCentreRightmostX then
-            world.Ship.ShipExtents <- world.Ship.ShipExtents |> RectangleShuntedBy ShipMovementStep 0<wu>
+        let ConsiderReloadPenalty oldWeaponReload =
 
-    let ConsiderBulletFiring () =
-
-        let ConsiderReloadPenalty () =
-
-            match world.Ship.WeaponReloadStartTimeOpt with
+            match oldWeaponReload with
                 | Some(startTime) -> 
                     if (timeNow --- startTime) >= TimeForReloadShipWeapon then
-                        world.Ship.WeaponReloadStartTimeOpt <- None
-                | None -> ()
+                        None
+                    else
+                        oldWeaponReload
+                | None ->
+                    None
 
-        let CheckFireButton () =
+        let CheckFireButton reloadPenalty =
 
-            if input.FireJustPressed && world.Ship.WeaponReloadStartTimeOpt |> Option.isNone then
-                let newBullet = NewBulletFiredFromCentrallyAbove world.Ship
-                let updatedBulletList = newBullet :: world.Bullets
-                world.Bullets <- updatedBulletList
-                world.Ship.WeaponReloadStartTimeOpt <- Some(timeNow)
+            if input.FireJustPressed && reloadPenalty |> Option.isNone then
+                let newBullet = NewBulletFiredFromCentrallyAbove oldWorld.Ship
+                let updatedBulletList = newBullet :: oldBullets
+                updatedBulletList, Some(timeNow)
+            else
+                oldBullets, reloadPenalty
 
-        ConsiderReloadPenalty ()
-        CheckFireButton ()
+        oldWeaponReload |> ConsiderReloadPenalty |> CheckFireButton
 
-    let ConsiderDroppingBombs () =
+            // TODO:  assign to  world.Bullets <- updatedBulletList
+            // TODO:  assign to  world.Ship.WeaponReloadStartTimeOpt <- Some(timeNow)
 
-        DoEvery TimeForNewBombCheck elapsedTime (fun () ->
-            let firingInvader = RandomInvader ()
+    let ConsiderDroppingBombs oldBombs invaders =
+
+        Every TimeForNewBombCheck elapsedTime oldBombs (fun state ->
+            let firingInvader = RandomInvader invaders
             match firingInvader with
-                | None -> ()
+                | None -> 
+                    state
                 | Some(firingInvader) -> 
                     let newBomb = NewBombPositionedCentrallyUnder (firingInvader |> AreaOfInvader)
-                    let updateBombsList = newBomb :: world.Bombs
-                    world.Bombs <- updateBombsList
-                    ()
+                    let updateBombsList = newBomb :: oldBombs
+                    updateBombsList
         )
+        // TODO: assign to world.Bombs
 
-    let MoveBullets () =
+    let MoveBullets oldBulletsList =
 
         let ApplyUpwardMovementToBullet b =
-            b.BulletExtents <- b.BulletExtents |> RectangleShuntedBy 0<wu> -BulletStep
+            { b with BulletExtents = b.BulletExtents |> RectangleShuntedBy 0<wu> -BulletStep }
 
         let WhereBulletStillBelowTopmostPosition bullet =
             bullet.BulletExtents.TopW > BulletEndY
 
         let bulletsStillInPlay = 
-            world.Bullets |> List.filter WhereBulletStillBelowTopmostPosition   // TODO: optimise for case where all are on screen still
+            oldBulletsList |> List.filter WhereBulletStillBelowTopmostPosition   // TODO: optimise for case where all are on screen still
 
-        bulletsStillInPlay |> List.iter ApplyUpwardMovementToBullet
+        bulletsStillInPlay |> List.map ApplyUpwardMovementToBullet
 
-        world.Bullets <- bulletsStillInPlay
+        // TODO: Assign to  world.Bullets <- bulletsStillInPlay
 
-    let MoveBombs () =
+    let MoveBombs oldBombsList =
 
         let ApplyDownwardMovementToBomb b =
-            b.BombExtents <- b.BombExtents |> RectangleShuntedBy 0<wu> BombStep
+            { b with BombExtents = b.BombExtents |> RectangleShuntedBy 0<wu> BombStep }
 
         let WhereBombStillAboveFloorPosition bomb =
             bomb.BombExtents.BottomW < BombFloorY
 
         let bombsStillInPlay = 
-            world.Bombs |> List.filter WhereBombStillAboveFloorPosition   // TODO: optimise for case where all are on screen still
+            oldBombsList |> List.filter WhereBombStillAboveFloorPosition   // TODO: optimise for case where all are on screen still
 
-        bombsStillInPlay |> List.iter ApplyDownwardMovementToBomb
+        bombsStillInPlay |> List.map ApplyDownwardMovementToBomb
 
-        world.Bombs <- bombsStillInPlay
+        // TODO: world.Bombs <- bombsStillInPlay
 
     let WithAdditionalExplosionsFor listOfThings areaOfThing preExistingExplosions =
 
@@ -280,166 +291,188 @@ let CalculateNextFrameState (world:GameWorld) (input:InputEventData) (timeNow:Ti
                 }
             ))
 
-    let ConsiderShotInvaders () =
+    let ConsiderShotInvaders oldBullets oldInvaders oldExplosions =
 
         let deadBullets,deadInvaders = 
             CollisionsBetweenLists 
-                (world.Bullets  |> WithAreasObtainedBy AreaOfBullet)
-                (world.Invaders |> WithAreasObtainedBy AreaOfInvader)
+                (oldBullets  |> WithAreasObtainedBy AreaOfBullet)
+                (oldInvaders |> WithAreasObtainedBy AreaOfInvader)
 
-        let scoreIncrease = uint32 (List.length deadInvaders) * ScoreForKillingInvader
+        let scoreIncrease      = uint32 (List.length deadInvaders) * ScoreForKillingInvader
+        let survivingInvaders  = oldInvaders |> List.filter (NotInList deadInvaders DogTagOfInvader)  // TODO: Prepare to return same list favouring no removals
+        let survivingBullets   = oldBullets |> List.filter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
+        let newExplosionsState = oldExplosions |> WithAdditionalExplosionsFor deadInvaders AreaOfInvader 
 
-        let survingInvaders = world.Invaders |> List.filter (NotInList deadInvaders DogTagOfInvader)  // TODO: Prepare to return same list favouring no removals
+        survivingBullets, survivingInvaders, newExplosionsState, scoreIncrease
 
-        let survingBullets = world.Bullets |> List.filter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
+        // TODO:  world.Bullets <- survingBullets
+        // TODO:  world.Invaders <- survingInvaders
+        // TODO:  world.Explosions <- newExplosionsState
+        // TODO:  IncreaseScoreBy scoreIncrease
 
-        let newExplosionsState = world.Explosions |> WithAdditionalExplosionsFor deadInvaders AreaOfInvader 
-
-        world.Bullets <- survingBullets
-        world.Invaders <- survingInvaders
-        world.Explosions <- newExplosionsState
-        IncreaseScoreBy scoreIncrease
-
-    let ConsiderShotMothership () =
+    let ConsiderShotMothership oldBullets oldMotherships oldExplosions =
 
         // TODO: Performance optimise:  Don't do any of this if no motherships (a common case)
 
         let deadBullets,deadMotherships = 
             CollisionsBetweenLists 
-                (world.Bullets |> WithAreasObtainedBy AreaOfBullet)
-                (world.Motherships |> WithAreasObtainedBy AreaOfMothership)
+                (oldBullets |> WithAreasObtainedBy AreaOfBullet)
+                (oldMotherships |> WithAreasObtainedBy AreaOfMothership)
 
-        let scoreIncrease = uint32 (List.length deadMotherships) * ScoreForKillingMothership
+        let scoreIncrease        = uint32 (List.length deadMotherships) * ScoreForKillingMothership
+        let survivingMotherships = oldMotherships |> List.filter (NotInList deadMotherships AreaOfMothership)  // TODO: Prepare to return same list favouring no removals
+        let survivingBullets     = oldBullets |> List.filter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
+        let newExplosionsState   = oldExplosions |> WithAdditionalExplosionsFor deadMotherships AreaOfMothership
 
-        let survingMotherships = world.Motherships |> List.filter (NotInList deadMotherships AreaOfMothership)  // TODO: Prepare to return same list favouring no removals
+        survivingBullets, survivingMotherships, newExplosionsState, scoreIncrease
 
-        let survingBullets = world.Bullets |> List.filter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
+        // TODO: world.Bullets <- survingBullets
+        // TODO: world.Motherships <- survingMotherships
+        // TODO: world.Explosions <- sumTotalExplosions
+        // TODO: IncreaseScoreBy scoreIncrease
 
-        let sumTotalExplosions = world.Explosions |> WithAdditionalExplosionsFor deadMotherships AreaOfMothership
+    let ConsiderRemovingExplosions oldExplosions =
 
-        world.Bullets <- survingBullets
-        world.Motherships <- survingMotherships
-        world.Explosions <- sumTotalExplosions
-        IncreaseScoreBy scoreIncrease
-
-    let ConsiderRemovingExplosions () =
-
-        let survivingExplosions = world.Explosions |> List.filter (fun e ->     // TODO: Prepare to return same list favouring no removals
+        let survivingExplosions = oldExplosions |> List.filter (fun e ->     // TODO: Prepare to return same list favouring no removals
             let elapsedSinceExplosionStarted = timeNow --- e.StartTime
             elapsedSinceExplosionStarted < TimeForWholeExplosion)
 
-        world.Explosions <- survivingExplosions
+        survivingExplosions
+        // TOdo:  world.Explosions <- survivingExplosions
 
-    let MoveInvaders () =
-    
-        let elapsedTime = timeNow --- world.GameStartTime
+    let MoveInvaders oldInvaders =
+ 
         let (TickSpan(ticks)) = elapsedTime
 
         let dx = if (ticks % (TimeForInvaderWiggle * 2u)) >= TimeForInvaderWiggle then InvaderWiggleStep  else -InvaderWiggleStep
         let dy = if (ticks % TimeForInvaderAdvance) = 0u then InvaderAdvanceStep else 0<wu>
 
-        world.Invaders |> List.iter (fun invader ->
+        oldInvaders |> List.map (fun invader ->
             let old = invader.InvaderExtents
-            invader.InvaderExtents <-
+            let newExtents =
                 {
                     LeftW     = old.LeftW   + dx
                     TopW      = old.TopW    + dy
                     RightW    = old.RightW  + dx
                     BottomW   = old.BottomW + dy
                 }
-            )
-
-    let ConsiderIntroducingMothership () =
-
-        let elapsedTime = timeNow --- world.GameStartTime
-
-        DoEvery TimeForMothershipCheck elapsedTime (fun () ->
-            let x = MothershipCentreStartX - (MothershipWidth / 2)
-            let newMothership = { MothershipExtents = { LeftW=x ; TopW=MotherShipTopY ; RightW=x+MothershipWidth ; BottomW=MotherShipTopY+MothershipHeight } }
-            world.Motherships <- newMothership :: world.Motherships
+            { invader with InvaderExtents = newExtents } 
         )
 
-    let MoveMotherships () =
+    let ConsiderIntroducingMothership oldMotherships =
+
+        Every TimeForMothershipCheck elapsedTime oldMotherships (fun oldMotherships ->
+            let x = MothershipCentreStartX - (MothershipWidth / 2)
+            let newMothership = { MothershipExtents = { LeftW=x ; TopW=MotherShipTopY ; RightW=x+MothershipWidth ; BottomW=MotherShipTopY+MothershipHeight } }
+            newMothership :: oldMotherships
+        )
+        // TODO: assign to world.Motherships
+
+    let MoveMotherships oldMotherships =
 
         let dx = MothershipStep
 
-        world.Motherships |> List.iter (fun mothership ->
+        let movedMotherships = oldMotherships |> List.map (fun mothership ->
             let old = mothership.MothershipExtents
-            mothership.MothershipExtents <- { old with LeftW = old.LeftW + dx ; RightW = old.RightW + dx }
+            { mothership with MothershipExtents = { old with LeftW = old.LeftW + dx ; RightW = old.RightW + dx } }
             )
 
         let atFinishPosition mothership =
             mothership.MothershipExtents.RightW = (MothershipCentreEndX + MothershipWidth / 2)
 
-        if world.Motherships |> List.exists atFinishPosition then
+        if movedMotherships |> List.exists atFinishPosition then
             let survivingMotherships =
-                world.Motherships |> List.filter (fun mothership -> not (mothership |> atFinishPosition))
-            world.Motherships <- survivingMotherships
+                movedMotherships |> List.filter (fun mothership -> not (mothership |> atFinishPosition))
+            survivingMotherships
+        else
+            movedMotherships
 
-    let NoInvadersLeft () =
+        // TODO: assign to world.Motherships <- 
+
+    let NoInvadersLeft (invaders:Invader list) =
     
-        world.Invaders.IsEmpty
+        invaders.IsEmpty
     
-    let InvaderAtLowestLevel () =
+    let InvaderAtLowestLevel invaders =
 
         let atLowestLevel invader = invader.InvaderExtents.BottomW >= ShipTopY
-        world.Invaders |> List.exists (fun invader -> invader |> atLowestLevel)
+        invaders |> List.exists (fun invader -> invader |> atLowestLevel)
 
-    let ShipCollidedWithInvader () =
+    let ShipCollidedWithInvader shipExtents invaders =
 
-        let shipRect = world.Ship.ShipExtents
-        let collidedWithShip invader = invader.InvaderExtents |> RectangleIntersects shipRect
-        world.Invaders |> List.exists (fun invader -> invader |> collidedWithShip)
+        let collidedWithShip invader = invader.InvaderExtents |> RectangleIntersects shipExtents
+        invaders |> List.exists (fun invader -> invader |> collidedWithShip)
 
-    let ShipCollidedWithBomb () =
+    let ShipCollidedWithBomb shipExtents bombs =
 
-        let shipRect = world.Ship.ShipExtents
-        let collidedWithShip bomb = bomb.BombExtents |> RectangleIntersects shipRect
-        world.Bombs |> List.exists (fun bomb -> bomb |> collidedWithShip)
+        let collidedWithShip bomb = bomb.BombExtents |> RectangleIntersects shipExtents
+        bombs |> List.exists (fun bomb -> bomb |> collidedWithShip)
 
-    let ExplodeTheShip () =
+    let ExplodeTheShip oldShip oldExplosions =
 
         let shipExplosion = 
             {
-                ExplosionExtents = world.Ship.ShipExtents
+                ExplosionExtents = oldShip.ShipExtents
                 StartTime = timeNow
             }
 
         let newExplosionsList =
-            shipExplosion :: world.Explosions
+            shipExplosion :: oldExplosions
 
-        world.Explosions <- newExplosionsList
+        newExplosionsList
+        // TODO: update  world.Explosions <- newExplosionsList
 
-    let LevelOver () =
-        InvaderAtLowestLevel ()
-        || ShipCollidedWithInvader ()
-        || ShipCollidedWithBomb ()
+    let LevelOver shipExtents invaders bombs =
+        InvaderAtLowestLevel invaders
+        || ShipCollidedWithInvader shipExtents invaders
+        || ShipCollidedWithBomb shipExtents bombs
 
-    match world.PlayEndedYet with
+    match oldWorld.PlayEndedYet with
 
         | None ->
-            MoveShip ()
-            ConsiderBulletFiring ()
-            ConsiderDroppingBombs ()
-            MoveBullets ()
-            MoveBombs ()
-            ConsiderShotInvaders ()
-            ConsiderShotMothership ()
-            MoveInvaders ()
-            MoveMotherships ()
-            ConsiderIntroducingMothership ()
-            ConsiderRemovingExplosions ()
+            let newShipExtents = MoveShip oldWorld.Ship.ShipExtents
+            let newBullets, newReloadPenalty = ConsiderBulletFiring oldWorld.Bullets oldWorld.Ship.WeaponReloadStartTimeOpt
+            let newBombs     = ConsiderDroppingBombs oldWorld.Bombs oldWorld.Invaders
+            let movedBullets = MoveBullets newBullets
+            let movedBombs   = MoveBombs newBombs
+            let survivingBullets, survivingInvaders, newExplosionsState, scoreIncreaseFromInvaders = 
+                ConsiderShotInvaders movedBullets oldWorld.Invaders oldWorld.Explosions
+            let survivingBullets, survivingMotherships, newExplosionsState, scoreIncreaseFromMotherships =
+                ConsiderShotMothership survivingBullets oldWorld.Motherships newExplosionsState
+            let movedInvaders     = MoveInvaders survivingInvaders
+            let movedMotherships  = MoveMotherships survivingMotherships
+            let newMotherships    = ConsiderIntroducingMothership movedMotherships
+            let ongoingExplosions = ConsiderRemovingExplosions newExplosionsState
+            
+            let newShip =
+                {
+                    ShipExtents = newShipExtents
+                    WeaponReloadStartTimeOpt = newReloadPenalty
+                }
 
-            world.PlayEndedYet <- 
-                if NoInvadersLeft () then 
-                    Some(timeNow, EndBecauseWon)
-                else if LevelOver () then
-                    ExplodeTheShip ()
-                    Some(timeNow, EndBecauseLost)
+            let newPlayEndedYet, ongoingExplosions =
+                if NoInvadersLeft movedInvaders then 
+                    Some(timeNow, EndBecauseWon), ongoingExplosions
+                else if LevelOver newShip.ShipExtents movedInvaders movedBombs then
+                    Some(timeNow, EndBecauseLost), (ExplodeTheShip newShip ongoingExplosions)
                 else
-                    None
+                    None, ongoingExplosions
 
-            GameContinuing
+            let newWorld =
+                {
+                    oldWorld with
+                        // TODO:  separate the score out from the other "GamePlayStats"
+                        PlayStats      = { oldWorld.PlayStats with ScoreAndHiScore = oldWorld.PlayStats.ScoreAndHiScore |> IncrementScoreBy (scoreIncreaseFromInvaders + scoreIncreaseFromMotherships) } 
+                        Motherships    = newMotherships
+                        Invaders       = movedInvaders
+                        Bullets        = survivingBullets
+                        Bombs          = movedBombs
+                        Explosions     = ongoingExplosions
+                        Ship           = newShip
+                        PlayEndedYet   = newPlayEndedYet
+                }
+
+            GameContinuing(newWorld)
 
         | Some(endedAt,reason) ->
 
@@ -447,18 +480,30 @@ let CalculateNextFrameState (world:GameWorld) (input:InputEventData) (timeNow:Ti
 
             if elapsedInEndState < TimeForEndState then
 
-                MoveBullets ()
-                MoveBombs ()
-                ConsiderShotInvaders ()
-                ConsiderShotMothership ()
-                MoveInvaders ()
-                MoveMotherships ()
-                ConsiderRemovingExplosions ()
+                let movedBullets = MoveBullets oldWorld.Bullets
+                let movedBombs = MoveBombs oldWorld.Bombs
+                let survivingBullets, survivingInvaders, newExplosionsState, _ = 
+                    ConsiderShotInvaders movedBullets oldWorld.Invaders oldWorld.Explosions
+                let survivingBullets, survivingMotherships, newExplosionsState, _ =
+                    ConsiderShotMothership survivingBullets oldWorld.Motherships newExplosionsState
+                let movedInvaders = MoveInvaders survivingInvaders
+                let movedMotherships = MoveMotherships survivingMotherships
+                let ongoingExplosions = ConsiderRemovingExplosions newExplosionsState
 
-                GameContinuing
+                let newWorld = 
+                    {
+                        oldWorld with
+                            Motherships    = movedMotherships
+                            Invaders       = movedInvaders
+                            Bullets        = survivingBullets
+                            Bombs          = movedBombs
+                            Explosions     = ongoingExplosions
+                    }
+
+                GameContinuing(newWorld)
 
             else
                 match reason with
-                    | EndBecauseWon  -> PlayerWon
-                    | EndBecauseLost -> PlayerLost
+                    | EndBecauseWon  -> PlayerWon(oldWorld)
+                    | EndBecauseLost -> PlayerLost(oldWorld)
                     

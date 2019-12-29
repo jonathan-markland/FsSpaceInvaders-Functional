@@ -8,20 +8,20 @@ open ScoreHiScore
 
 type GamePlayStats =
     {
-        mutable Level:             uint32
-        mutable ScoreAndHiScore:   ScoreAndHiScore
-        mutable Lives:             uint32
+        Level:             uint32
+        ScoreAndHiScore:   ScoreAndHiScore
+        Lives:             uint32
     }
 
 
 type Ship = 
     {
-        mutable ShipExtents: RectangleW
+        ShipExtents: RectangleW
 
         /// If None, the ship's weapon is ready.
         /// If Some() it gives the tick count at which
         /// the reload penalty began.
-        mutable WeaponReloadStartTimeOpt: TickCount option
+        WeaponReloadStartTimeOpt: TickCount option
     }
 
 
@@ -40,7 +40,7 @@ type Invader =
         /// and calculate a colour.
         DogTag:  DogTag
 
-        mutable InvaderExtents: RectangleW
+        InvaderExtents: RectangleW
     }
 
 let AreaOfInvader i = i.InvaderExtents
@@ -51,7 +51,7 @@ let DogTagOfInvader i = i.DogTag
 /// only when the mothership instance appears.
 type Mothership =
     {
-        mutable MothershipExtents: RectangleW
+        MothershipExtents: RectangleW
     }
 
 let AreaOfMothership m = m.MothershipExtents
@@ -61,7 +61,7 @@ let AreaOfMothership m = m.MothershipExtents
 /// only when the bullet instance appears.
 type Bullet =
     {
-        mutable BulletExtents: RectangleW
+        BulletExtents: RectangleW
     }
 
 let AreaOfBullet b = b.BulletExtents
@@ -76,7 +76,7 @@ let NewBulletAt (x,y) =
 /// only when the bomb instance appears.
 type Bomb =
     {
-        mutable BombExtents: RectangleW
+        BombExtents: RectangleW
     }
 
 let AreaOfBomb b = b.BombExtents
@@ -113,15 +113,15 @@ type GamePlayEndReason = EndBecauseWon | EndBecauseLost
 /// The Game world state during gameplay.
 type GameWorld =
     {
-        GameStartTime:              TickCount
-        PlayStats:                  GamePlayStats
-        mutable Motherships:        Mothership list  // anticipated max one for now, but type-similarity to Invaders allows some uniform handling.
-        mutable Invaders:           Invader list
-        mutable Bullets:            Bullet list
-        mutable Bombs:              Bomb list
-        mutable Explosions:         Explosion list
-        Ship:                       Ship
-        mutable PlayEndedYet:       (TickCount * GamePlayEndReason) option
+        GameStartTime:      TickCount
+        PlayStats:          GamePlayStats
+        Motherships:        Mothership list  // anticipated max one for now, but type-similarity to Invaders allows some uniform handling.
+        Invaders:           Invader list
+        Bullets:            Bullet list
+        Bombs:              Bomb list
+        Explosions:         Explosion list
+        Ship:               Ship
+        PlayEndedYet:       (TickCount * GamePlayEndReason) option
     }
 
 
@@ -132,8 +132,4 @@ type Screen =
     | LifeOverScreen  of GameWorld
     | NextLevelScreen of GameWorld
     | GameOverScreen  of hiScore:uint32
-
-
-
-
 
