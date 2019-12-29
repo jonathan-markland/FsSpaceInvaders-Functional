@@ -38,7 +38,7 @@ let RenderGameWorld render (gameWorld:GameWorld) =
 
         match theShip.WeaponReloadStartTimeOpt with
             | Some(_) -> ()
-            | None    -> render (DrawBullet (BulletPositionOnTopOfShip theShip))
+            | None    -> render (DrawBullet (BulletPositionOnTopOfShip theShip.ShipExtents))
 
     gameWorld.Bullets |> List.iter
         (fun bullet -> 
