@@ -13,6 +13,7 @@
     <Compile Include="GamePlayTypes.fs" />
     <Compile Include="DrawingCommands.fs" />
     <Compile Include="Rules.fs" />
+    <Compile Include="GamePlayInternal.fs" />
     <Compile Include="GamePlay.fs" />
     <Compile Include="GameDrawing.fs" />
     <Compile Include="Screens.fs" />

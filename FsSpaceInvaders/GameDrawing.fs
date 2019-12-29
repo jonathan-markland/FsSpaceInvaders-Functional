@@ -1,6 +1,6 @@
 ﻿module GameDrawing
 
-open GamePlay
+open GamePlayInternal
 open GamePlayTypes
 open ScreenLayout
 open DrawingCommands
