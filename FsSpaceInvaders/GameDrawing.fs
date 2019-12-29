@@ -70,11 +70,11 @@ let RenderGameWorld render (gameWorld:GameWorld) =
     text   HeadingLevelX   ScoreboardTitlesTopY "LEVEL"   CentreAlign TopAlign
     text   HeadingLivesX   ScoreboardTitlesTopY "LIVES"   RightAlign  TopAlign
 
-    let { Score=score ; HiScore=hiScore } = gameWorld.PlayStats.ScoreAndHiScore
+    let { Score=score ; HiScore=hiScore } = gameWorld.ScoreAndHiScore
 
     number HeadingScoreX   ScoreboardValuesTopY score   LeftAlign   TopAlign 
     number HeadingHiScoreX ScoreboardValuesTopY hiScore CentreAlign TopAlign
-    number HeadingLevelX   ScoreboardValuesTopY gameWorld.PlayStats.Level   CentreAlign TopAlign
-    number HeadingLivesX   ScoreboardValuesTopY gameWorld.PlayStats.Lives   RightAlign TopAlign
+    number HeadingLevelX   ScoreboardValuesTopY gameWorld.LevelAndLives.Level   CentreAlign TopAlign
+    number HeadingLivesX   ScoreboardValuesTopY gameWorld.LevelAndLives.Lives   RightAlign TopAlign
 
 

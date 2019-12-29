@@ -6,10 +6,9 @@ open Dimensions
 open ScoreHiScore
 
 
-type GamePlayStats =
+type LevelAndLives =
     {
         Level:             uint32
-        ScoreAndHiScore:   ScoreAndHiScore
         Lives:             uint32
     }
 
@@ -114,7 +113,8 @@ type GamePlayEndReason = EndBecauseWon | EndBecauseLost
 type GameWorld =
     {
         GameStartTime:      TickCount
-        PlayStats:          GamePlayStats
+        ScoreAndHiScore:    ScoreAndHiScore
+        LevelAndLives:      LevelAndLives
         Motherships:        Mothership list  // anticipated max one for now, but type-similarity to Invaders allows some uniform handling.
         Invaders:           Invader list
         Bullets:            Bullet list

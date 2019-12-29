@@ -67,13 +67,13 @@ let NewGameWorld hiScore (timeNow:TickCount) : GameWorld =
     {
         GameStartTime = timeNow
 
-        PlayStats =
+        LevelAndLives =
             {
                 Level   = 1u
-                ScoreAndHiScore = { Score=0u ; HiScore=hiScore }
                 Lives   = 3u
             }
 
+        ScoreAndHiScore = { Score=0u ; HiScore=hiScore }
         Motherships  = []
         Invaders     = NewInvaderPack ()
         Bullets      = []
@@ -89,18 +89,19 @@ let NewGameWorld hiScore (timeNow:TickCount) : GameWorld =
 /// return a new world for the next life.
 let NextLifeGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
 
-    let oldStats = outgoing.PlayStats
+    let oldStats = outgoing.LevelAndLives
 
     {
-        GameStartTime = timeNow
-        PlayStats     = { oldStats with Lives = oldStats.Lives - 1u }
-        Motherships   = outgoing.Motherships
-        Invaders      = outgoing.Invaders
-        Bullets       = []
-        Bombs         = []
-        Explosions    = []
-        Ship          = outgoing.Ship
-        PlayEndedYet  = None
+        GameStartTime   = timeNow
+        LevelAndLives   = { oldStats with Lives = oldStats.Lives - 1u }
+        ScoreAndHiScore = outgoing.ScoreAndHiScore
+        Motherships     = outgoing.Motherships
+        Invaders        = outgoing.Invaders
+        Bullets         = []
+        Bombs           = []
+        Explosions      = []
+        Ship            = outgoing.Ship
+        PlayEndedYet    = None
     }
 
 
@@ -109,19 +110,19 @@ let NextLifeGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
 /// return a new world for the next level.
 let NextLevelGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
 
-    let oldStats   = outgoing.PlayStats
-    let newScoring = oldStats.ScoreAndHiScore |> IncrementScoreBy ScoreForNextLevel
+    let oldStats   = outgoing.LevelAndLives
 
     {
-        GameStartTime = timeNow
-        PlayStats     = { oldStats with Lives = oldStats.Lives + 1u ; Level = oldStats.Level + 1u ; ScoreAndHiScore = newScoring }
-        Motherships   = []
-        Invaders      = NewInvaderPack ()
-        Bullets       = []
-        Bombs         = []
-        Explosions    = []
-        Ship          = ShipInLevelStartPosition ()
-        PlayEndedYet  = None
+        GameStartTime   = timeNow
+        LevelAndLives   = { Lives = oldStats.Lives + 1u ; Level = oldStats.Level + 1u }
+        ScoreAndHiScore = outgoing.ScoreAndHiScore |> IncrementScoreBy ScoreForNextLevel
+        Motherships     = []
+        Invaders        = NewInvaderPack ()
+        Bullets         = []
+        Bombs           = []
+        Explosions      = []
+        Ship            = ShipInLevelStartPosition ()
+        PlayEndedYet    = None
     }
 
 
@@ -446,14 +447,14 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
                 {
                     oldWorld with
                         // TODO:  separate the score out from the other "GamePlayStats"
-                        PlayStats      = { oldWorld.PlayStats with ScoreAndHiScore = oldWorld.PlayStats.ScoreAndHiScore |> IncrementScoreBy (scoreIncreaseFromInvaders + scoreIncreaseFromMotherships) } 
-                        Motherships    = motherships
-                        Invaders       = invaders
-                        Bullets        = bullets
-                        Bombs          = bombs
-                        Explosions     = ongoingExplosions
-                        Ship           = newShip
-                        PlayEndedYet   = newPlayEndedYet
+                        ScoreAndHiScore = oldWorld.ScoreAndHiScore |> IncrementScoreBy (scoreIncreaseFromInvaders + scoreIncreaseFromMotherships) 
+                        Motherships     = motherships
+                        Invaders        = invaders
+                        Bullets         = bullets
+                        Bombs           = bombs
+                        Explosions      = ongoingExplosions
+                        Ship            = newShip
+                        PlayEndedYet    = newPlayEndedYet
                 }
 
             GameContinuing(newWorld)
