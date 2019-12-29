@@ -366,25 +366,6 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
         else
             movedMotherships
 
-    let NoInvadersLeft (invaders:Invader list) =
-    
-        invaders.IsEmpty
-    
-    let InvaderAtLowestLevel invaders =
-
-        let atLowestLevel invader = invader.InvaderExtents.BottomW >= ShipTopY
-        invaders |> List.exists (fun invader -> invader |> atLowestLevel)
-
-    let ShipCollidedWithInvader shipExtents invaders =
-
-        let collidedWithShip invader = invader.InvaderExtents |> RectangleIntersects shipExtents
-        invaders |> List.exists (fun invader -> invader |> collidedWithShip)
-
-    let ShipCollidedWithBomb shipExtents bombs =
-
-        let collidedWithShip bomb = bomb.BombExtents |> RectangleIntersects shipExtents
-        bombs |> List.exists (fun bomb -> bomb |> collidedWithShip)
-
     let ExplodeTheShip oldShip oldExplosions =
 
         let shipExplosion = 
@@ -398,14 +379,35 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
 
         newExplosionsList
 
+    let NoInvadersLeft (invaders:Invader list) =
+
+        invaders.IsEmpty
+
     let LevelOver shipExtents invaders bombs =
+
+        let InvaderAtLowestLevel invaders =
+
+            let atLowestLevel invader = invader.InvaderExtents.BottomW >= ShipTopY
+            invaders |> List.exists (fun invader -> invader |> atLowestLevel)
+
+        let ShipCollidedWithInvader shipExtents invaders =
+
+            let collidedWithShip invader = invader.InvaderExtents |> RectangleIntersects shipExtents
+            invaders |> List.exists (fun invader -> invader |> collidedWithShip)
+
+        let ShipCollidedWithBomb shipExtents bombs =
+
+            let collidedWithShip bomb = bomb.BombExtents |> RectangleIntersects shipExtents
+            bombs |> List.exists (fun bomb -> bomb |> collidedWithShip)
+
         InvaderAtLowestLevel invaders
         || ShipCollidedWithInvader shipExtents invaders
         || ShipCollidedWithBomb shipExtents bombs
 
-    match oldWorld.PlayEndedYet with
+    match oldWorld.PlayEndedYet with // TODO: I really don't like this design.  Introduce a "Screen" to handle the little bit of animation extra-time needed before we switch.
 
         | None ->
+
             let newShipExtents =
                 MoveShip oldWorld.Ship.ShipExtents
 
@@ -416,10 +418,9 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
                     newShipExtents
 
             let bombs = 
-                ConsiderDroppingBombs oldWorld.Bombs oldWorld.Invaders
+                ConsiderDroppingBombs oldWorld.Bombs oldWorld.Invaders |> MoveBombs
 
             let bullets = MoveBullets bullets
-            let bombs   = MoveBombs bombs
 
             let bullets, invaders, explosions, scoreIncreaseFromInvaders = 
                 ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions
@@ -468,15 +469,21 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
 
             if elapsedInEndState < TimeForEndState then
 
-                let bullets = MoveBullets oldWorld.Bullets
-                let bombs = MoveBombs oldWorld.Bombs
+                let bullets = 
+                    MoveBullets oldWorld.Bullets
+
+                let bombs = 
+                    MoveBombs oldWorld.Bombs
+
                 let bullets, invaders, explosions, _ = 
                     ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions
+
                 let bullets, motherships, explosions, _ =
                     ConsiderShotMothership bullets oldWorld.Motherships explosions
-                let invaders = MoveInvaders invaders
+
+                let invaders    = MoveInvaders invaders
                 let motherships = MoveMotherships motherships
-                let explosions = ConsiderRemovingExplosions explosions
+                let explosions  = ConsiderRemovingExplosions explosions
 
                 let newWorld = 
                     {
