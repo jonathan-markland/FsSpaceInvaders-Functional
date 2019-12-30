@@ -1,6 +1,6 @@
 ﻿open SDL2
 open System.IO
-open SDLCover
+open SDLCover // TODO: Move SDLCOver into a separate DLL for other programs.
 open GamePlayTypes
 open DrawingCommands
 open Rules
@@ -114,7 +114,7 @@ let RenderToSdl imageSet fontDefinition renderer drawingCommand =
 
 
 
-let TimerCallback (interval:uint32) (param:nativeint) : uint32 =
+let TimerCallback (interval:uint32) (param:nativeint) : uint32 =  // TODO: Can this go into the SDL library?
 
     let mutable event = new SDL.SDL_Event()
 

@@ -235,29 +235,13 @@ let DrawTextString renderer x y message textHAlign textVAlign (fontDefinition:Fo
     let chHeight = fontDefinition.CharHeight
     let texture  = fontDefinition.FontTextureNativeInt
 
-    let measuredWidth (s:string) =
-        s.Length * chWidth
-
-    let mutable posx =
-        match textHAlign with
-            | LeftAlign   -> x
-            | CentreAlign -> x - (message |> measuredWidth) / 2
-            | RightAlign  -> x - (message |> measuredWidth)
-
-    let posy =
-        match textVAlign with
-            | TopAlign    -> y
-            | MiddleAlign -> y - (chHeight / 2)
-            | BottomAlign -> y - chHeight
-
-    message |> Seq.iter (fun ch -> 
-        let write charIndex = DrawSubImage renderer texture  (charIndex * chWidth) 0 chWidth chHeight  posx posy chWidth chHeight
-        if      ch >= '0' && ch <= '9' then write ((int ch) - 48)
-        else if ch >= 'A' && ch <= 'Z' then write ((int ch) - 55)
-        else if ch >= 'a' && ch <= 'z' then write ((int ch) - 87)
-        else ()
-        posx <- posx + chWidth
-    )
+    let drawCharImage charIndex x y =
+        DrawSubImage 
+            renderer texture  
+            (charIndex * chWidth) 0 chWidth chHeight 
+            x y chWidth chHeight
+        
+    LayOutMonospaceFontTextString drawCharImage chWidth chHeight x y message textHAlign textVAlign
 
 
 
