@@ -135,7 +135,7 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
 
     let elapsedTime = timeNow --- oldWorld.GameStartTime
 
-    let newShip, bullets =
+    let ship, bullets =
         match oldWorld.Ship with
             
             | None ->
@@ -164,7 +164,8 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
         ConsiderDroppingBombs oldWorld.Bombs oldWorld.Invaders timeNow elapsedTime 
             |> MoveBombs
 
-    let bullets = MoveBullets bullets
+    let bullets =
+        MoveBullets bullets
 
     let bullets, invaders, explosions, scoreIncreaseFromInvaders = 
         ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions timeNow
@@ -172,23 +173,27 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
     let bullets, motherships, explosions, scoreIncreaseFromMotherships =
         ConsiderShotMothership bullets oldWorld.Motherships explosions timeNow
             
-    let invaders     = MoveInvaders invaders elapsedTime
-    let motherships  = MoveMotherships motherships
-    let motherships  = ConsiderIntroducingMothership motherships elapsedTime
-    let explosions   = ConsiderRemovingExplosions explosions timeNow
+    let invaders = 
+        MoveInvaders invaders elapsedTime
+    
+    let motherships = 
+        motherships |> MoveMotherships |> ConsiderIntroducingMothership elapsedTime
+    
+    let explosions = 
+        ConsiderRemovingExplosions explosions timeNow
 
     let levelOver =
-        match newShip with 
+        match ship with 
             | None -> true
             | Some(ship) -> LevelOver ship.ShipExtents invaders bombs
 
     let explosions, newShip =
         if levelOver then
-            match newShip with
-                | None -> explosions, newShip
+            match ship with
+                | None -> explosions, ship
                 | Some(ship) -> (ExplodeTheShip ship explosions timeNow, None)
         else
-            explosions, newShip
+            explosions, ship
 
     let newWorld =
         {
@@ -226,35 +231,11 @@ let CalculateNextPlaySuspendedState (oldWorld:GameWorld) (timeNow:TickCount) end
 
     if elapsedInEndState < TimeForEndState then
 
-        // TODO: re-use above
-
-        let elapsedTime = timeNow --- oldWorld.GameStartTime
-
-        let bullets = 
-            MoveBullets oldWorld.Bullets
-
-        let bombs = 
-            MoveBombs oldWorld.Bombs
-
-        let bullets, invaders, explosions, _ = 
-            ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions timeNow
-
-        let bullets, motherships, explosions, _ =
-            ConsiderShotMothership bullets oldWorld.Motherships explosions timeNow
-
-        let invaders    = MoveInvaders invaders elapsedTime
-        let motherships = MoveMotherships motherships
-        let explosions  = ConsiderRemovingExplosions explosions timeNow
-
         let newWorld = 
-            {
-                oldWorld with
-                    Motherships    = motherships
-                    Invaders       = invaders
-                    Bullets        = bullets
-                    Bombs          = bombs
-                    Explosions     = explosions
-            }
+            match CalculateNextFrameState oldWorld InputsWhereNothingIsPressed timeNow with
+                | PlayerLost(w) -> w
+                | PlayerWon(w) -> w
+                | GameContinuing(w) -> w
 
         AnimationContinuing(newWorld)
 

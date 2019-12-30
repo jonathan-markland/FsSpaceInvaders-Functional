@@ -13,3 +13,11 @@ type InputEventData =
         FireJustPressed:  bool
     }
 
+
+
+let InputsWhereNothingIsPressed =
+    {
+        LeftHeld = false
+        RightHeld = false
+        FireJustPressed = false
+    }

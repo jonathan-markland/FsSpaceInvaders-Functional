@@ -216,7 +216,7 @@ let MoveInvaders oldInvaders elapsedTime =
         { invader with InvaderExtents = newExtents } 
     )
 
-let ConsiderIntroducingMothership oldMotherships elapsedTime =
+let ConsiderIntroducingMothership elapsedTime oldMotherships =
 
     Every TimeForMothershipCheck elapsedTime oldMotherships (fun oldMotherships ->
         let x = MothershipCentreStartX - (MothershipWidth / 2)
