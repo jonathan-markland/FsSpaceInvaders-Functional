@@ -9,7 +9,7 @@ open ScoreHiScore
 
 
 
-let RenderGameWorld render (gameWorld:GameWorld) =
+let RenderGameWorld render (gameWorld:GameWorld) playEndedYet =
 
     render (GameplayBackground)
 
@@ -28,7 +28,7 @@ let RenderGameWorld render (gameWorld:GameWorld) =
                     invader.InvaderExtents.TopW,
                     invader.DogTag)))
 
-    if gameWorld.PlayEndedYet |> Option.isNone then
+    if not playEndedYet then
 
         let theShip = gameWorld.Ship
         let shipL = theShip.ShipExtents.LeftW

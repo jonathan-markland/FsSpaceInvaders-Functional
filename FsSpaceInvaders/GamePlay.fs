@@ -80,7 +80,6 @@ let NewGameWorld hiScore (timeNow:TickCount) : GameWorld =
         Bombs        = []
         Explosions   = []
         Ship         = ShipInLevelStartPosition ()
-        PlayEndedYet = None
     }
 
 
@@ -101,7 +100,6 @@ let NextLifeGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
         Bombs           = []
         Explosions      = []
         Ship            = outgoing.Ship
-        PlayEndedYet    = None
     }
 
 
@@ -122,7 +120,6 @@ let NextLevelGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
         Bombs           = []
         Explosions      = []
         Ship            = ShipInLevelStartPosition ()
-        PlayEndedYet    = None
     }
 
 
@@ -138,104 +135,115 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
 
     let elapsedTime = timeNow --- oldWorld.GameStartTime
 
-    match oldWorld.PlayEndedYet with // TODO: I really don't like this design.  Introduce a "Screen" to handle the little bit of animation extra-time needed before we switch.
+    let newShipExtents =
+        MoveShip oldWorld.Ship.ShipExtents input
 
-        | None ->
+    let bullets, newReloadPenalty =
+        ConsiderBulletFiring 
+            oldWorld.Bullets 
+            oldWorld.Ship.WeaponReloadStartTimeOpt 
+            newShipExtents
+            timeNow
+            input
 
-            let newShipExtents =
-                MoveShip oldWorld.Ship.ShipExtents input
+    let bombs = 
+        ConsiderDroppingBombs oldWorld.Bombs oldWorld.Invaders timeNow elapsedTime 
+            |> MoveBombs
 
-            let bullets, newReloadPenalty =
-                ConsiderBulletFiring 
-                    oldWorld.Bullets 
-                    oldWorld.Ship.WeaponReloadStartTimeOpt 
-                    newShipExtents
-                    timeNow
-                    input
+    let bullets = MoveBullets bullets
 
-            let bombs = 
-                ConsiderDroppingBombs oldWorld.Bombs oldWorld.Invaders timeNow elapsedTime 
-                    |> MoveBombs
-
-            let bullets = MoveBullets bullets
-
-            let bullets, invaders, explosions, scoreIncreaseFromInvaders = 
-                ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions timeNow
+    let bullets, invaders, explosions, scoreIncreaseFromInvaders = 
+        ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions timeNow
             
-            let bullets, motherships, explosions, scoreIncreaseFromMotherships =
-                ConsiderShotMothership bullets oldWorld.Motherships explosions timeNow
+    let bullets, motherships, explosions, scoreIncreaseFromMotherships =
+        ConsiderShotMothership bullets oldWorld.Motherships explosions timeNow
             
-            let invaders     = MoveInvaders invaders elapsedTime
-            let motherships  = MoveMotherships motherships
-            let motherships  = ConsiderIntroducingMothership motherships elapsedTime
-            let explosions   = ConsiderRemovingExplosions explosions timeNow
+    let invaders     = MoveInvaders invaders elapsedTime
+    let motherships  = MoveMotherships motherships
+    let motherships  = ConsiderIntroducingMothership motherships elapsedTime
+    let explosions   = ConsiderRemovingExplosions explosions timeNow
 
-            let newShip =
-                {
-                    ShipExtents = newShipExtents
-                    WeaponReloadStartTimeOpt = newReloadPenalty
-                }
+    let newShip =
+        {
+            ShipExtents = newShipExtents
+            WeaponReloadStartTimeOpt = newReloadPenalty
+        }
 
-            let newPlayEndedYet, ongoingExplosions =
-                if NoInvadersLeft invaders then 
-                    Some(timeNow, EndBecauseWon), explosions
-                else if LevelOver newShip.ShipExtents invaders bombs then
-                    Some(timeNow, EndBecauseLost), (ExplodeTheShip newShip explosions timeNow)
-                else
-                    None, explosions
+    let levelOver = LevelOver newShip.ShipExtents invaders bombs
 
-            let newWorld =
-                {
-                    oldWorld with
-                        // TODO:  separate the score out from the other "GamePlayStats"
-                        ScoreAndHiScore = oldWorld.ScoreAndHiScore |> IncrementScoreBy (scoreIncreaseFromInvaders + scoreIncreaseFromMotherships) 
-                        Motherships     = motherships
-                        Invaders        = invaders
-                        Bullets         = bullets
-                        Bombs           = bombs
-                        Explosions      = ongoingExplosions
-                        Ship            = newShip
-                        PlayEndedYet    = newPlayEndedYet
-                }
+    let explosions =
+        if levelOver then 
+            ExplodeTheShip newShip explosions timeNow
+        else
+            explosions
 
-            GameContinuing(newWorld)
+    let newWorld =
+        {
+            oldWorld with
+                ScoreAndHiScore = oldWorld.ScoreAndHiScore |> IncrementScoreBy (scoreIncreaseFromInvaders + scoreIncreaseFromMotherships) 
+                Motherships     = motherships
+                Invaders        = invaders
+                Bullets         = bullets
+                Bombs           = bombs
+                Explosions      = explosions
+                Ship            = newShip
+        }
 
-        | Some(endedAt,reason) ->
+    if levelOver then
+        PlayerLost(newWorld)
+    else if NoInvadersLeft invaders then 
+        PlayerWon(newWorld)
+    else
+        GameContinuing(newWorld)
 
-            let elapsedInEndState = timeNow --- endedAt
 
-            if elapsedInEndState < TimeForEndState then
 
-                let bullets = 
-                    MoveBullets oldWorld.Bullets
-
-                let bombs = 
-                    MoveBombs oldWorld.Bombs
-
-                let bullets, invaders, explosions, _ = 
-                    ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions timeNow
-
-                let bullets, motherships, explosions, _ =
-                    ConsiderShotMothership bullets oldWorld.Motherships explosions timeNow
-
-                let invaders    = MoveInvaders invaders elapsedTime
-                let motherships = MoveMotherships motherships
-                let explosions  = ConsiderRemovingExplosions explosions timeNow
-
-                let newWorld = 
-                    {
-                        oldWorld with
-                            Motherships    = motherships
-                            Invaders       = invaders
-                            Bullets        = bullets
-                            Bombs          = bombs
-                            Explosions     = explosions
-                    }
-
-                GameContinuing(newWorld)
-
-            else
-                match reason with
-                    | EndBecauseWon  -> PlayerWon(oldWorld)
-                    | EndBecauseLost -> PlayerLost(oldWorld)
+type AnimatedSequenceResult<'T> =
+    | AnimationContinuing of 'T
+    | AnimationFinished of 'T
                     
+
+
+/// This is used for the short sequence after a life loss
+/// or a level win.  This allows animations to continue on the
+/// gameplay screen for a while before clearing.
+let CalculateNextPlaySuspendedState (oldWorld:GameWorld) (timeNow:TickCount) endedAt =
+
+    let elapsedInEndState = timeNow --- endedAt
+
+    if elapsedInEndState < TimeForEndState then
+
+        let elapsedTime = timeNow --- oldWorld.GameStartTime
+
+        let bullets = 
+            MoveBullets oldWorld.Bullets
+
+        let bombs = 
+            MoveBombs oldWorld.Bombs
+
+        let bullets, invaders, explosions, _ = 
+            ConsiderShotInvaders bullets oldWorld.Invaders oldWorld.Explosions timeNow
+
+        let bullets, motherships, explosions, _ =
+            ConsiderShotMothership bullets oldWorld.Motherships explosions timeNow
+
+        let invaders    = MoveInvaders invaders elapsedTime
+        let motherships = MoveMotherships motherships
+        let explosions  = ConsiderRemovingExplosions explosions timeNow
+
+        let newWorld = 
+            {
+                oldWorld with
+                    Motherships    = motherships
+                    Invaders       = invaders
+                    Bullets        = bullets
+                    Bombs          = bombs
+                    Explosions     = explosions
+            }
+
+        AnimationContinuing(newWorld)
+
+    else
+
+        AnimationFinished(oldWorld)
+

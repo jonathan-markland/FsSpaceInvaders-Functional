@@ -105,9 +105,6 @@ let NewExplosionAt extentsRectangle startTime =
     }
 
 
-type GamePlayEndReason = EndBecauseWon | EndBecauseLost
-
-
 
 /// The Game world state during gameplay.
 type GameWorld =
@@ -121,15 +118,16 @@ type GameWorld =
         Bombs:              Bomb list
         Explosions:         Explosion list
         Ship:               Ship
-        PlayEndedYet:       (TickCount * GamePlayEndReason) option
     }
 
 
 
 type Screen =
-    | WelcomeScreen   of hiScore:uint32
-    | GamePlayScreen  of GameWorld
-    | LifeOverScreen  of GameWorld
-    | NextLevelScreen of GameWorld
-    | GameOverScreen  of hiScore:uint32
-
+    | WelcomeScreen       of hiScore:uint32
+    | GamePlayScreen      of GameWorld
+    | LifeOverAnimScreen  of GameWorld * startTime:TickCount
+    | LifeOverScreen      of GameWorld
+    | NextLevelAminScreen of GameWorld * startTime:TickCount
+    | NextLevelScreen     of GameWorld
+    | GameOverAnimScreen  of GameWorld * startTime:TickCount
+    | GameOverScreen      of GameWorld
