@@ -9,7 +9,7 @@ open ScoreHiScore
 
 
 
-let RenderGameWorld render (gameWorld:GameWorld) playEndedYet =
+let RenderGameWorld render (gameWorld:GameWorld) =
 
     render (GameplayBackground)
 
@@ -28,17 +28,18 @@ let RenderGameWorld render (gameWorld:GameWorld) playEndedYet =
                     invader.InvaderExtents.TopW,
                     invader.DogTag)))
 
-    if not playEndedYet then
+    match gameWorld.Ship with
+        | None -> ()
+        | Some(theShip) ->
 
-        let theShip = gameWorld.Ship
-        let shipL = theShip.ShipExtents.LeftW
-        let shipT = theShip.ShipExtents.TopW
+            let shipL = theShip.ShipExtents.LeftW
+            let shipT = theShip.ShipExtents.TopW
 
-        render (DrawShip(shipL, shipT))
+            render (DrawShip(shipL, shipT))
 
-        match theShip.WeaponReloadStartTimeOpt with
-            | Some(_) -> ()
-            | None    -> render (DrawBullet (BulletPositionOnTopOfShip theShip.ShipExtents))
+            match theShip.WeaponReloadStartTimeOpt with
+                | Some(_) -> ()
+                | None    -> render (DrawBullet (BulletPositionOnTopOfShip theShip.ShipExtents))
 
     gameWorld.Bullets |> List.iter
         (fun bullet -> 

@@ -84,7 +84,7 @@ let MoveShip oldShipExtents (input:InputEventData) =
 
     oldShipExtents |> RectangleShuntedBy movementStep 0<wu>
 
-let ConsiderBulletFiring oldBullets oldWeaponReload shipExtents timeNow input =
+let ConsiderBulletFiring oldBullets (ship:Ship) shipExtents timeNow input =
 
     let ConsiderReloadPenalty oldWeaponReload =
 
@@ -106,7 +106,7 @@ let ConsiderBulletFiring oldBullets oldWeaponReload shipExtents timeNow input =
         else
             oldBullets, reloadPenalty
 
-    oldWeaponReload |> ConsiderReloadPenalty |> CheckFireButton
+    ship.WeaponReloadStartTimeOpt |> ConsiderReloadPenalty |> CheckFireButton
 
 let ConsiderDroppingBombs oldBombs invaders timeNow elapsedTime =
 
@@ -197,6 +197,9 @@ let ConsiderRemovingExplosions oldExplosions timeNow =
 let MoveInvaders oldInvaders elapsedTime =
  
     let (TickSpan(ticks)) = elapsedTime
+
+    // TODO: This accumulates strangely, resulting in invaders tending off-piste,
+    //       particularly around life loss sequences.
 
     let dx = if (ticks % (TimeForInvaderWiggle * 2u)) >= TimeForInvaderWiggle then InvaderWiggleStep  else -InvaderWiggleStep
     let dy = if (ticks % TimeForInvaderAdvance) = 0u then InvaderAdvanceStep else 0<wu>

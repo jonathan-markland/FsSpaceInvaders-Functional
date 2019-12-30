@@ -79,7 +79,7 @@ let NewGameWorld hiScore (timeNow:TickCount) : GameWorld =
         Bullets      = []
         Bombs        = []
         Explosions   = []
-        Ship         = ShipInLevelStartPosition ()
+        Ship         = Some(ShipInLevelStartPosition ())
     }
 
 
@@ -99,7 +99,7 @@ let NextLifeGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
         Bullets         = []
         Bombs           = []
         Explosions      = []
-        Ship            = outgoing.Ship
+        Ship            = Some(ShipInLevelStartPosition ())
     }
 
 
@@ -119,7 +119,7 @@ let NextLevelGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
         Bullets         = []
         Bombs           = []
         Explosions      = []
-        Ship            = ShipInLevelStartPosition ()
+        Ship            = Some(ShipInLevelStartPosition ())
     }
 
 
@@ -135,16 +135,30 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
 
     let elapsedTime = timeNow --- oldWorld.GameStartTime
 
-    let newShipExtents =
-        MoveShip oldWorld.Ship.ShipExtents input
+    let newShip, bullets =
+        match oldWorld.Ship with
+            
+            | None ->
+                None, oldWorld.Bullets
+            
+            | Some(ship) ->
 
-    let bullets, newReloadPenalty =
-        ConsiderBulletFiring 
-            oldWorld.Bullets 
-            oldWorld.Ship.WeaponReloadStartTimeOpt 
-            newShipExtents
-            timeNow
-            input
+                let newShipExtents =
+                    MoveShip ship.ShipExtents input
+
+                let bullets, reloadPenalty =
+                    ConsiderBulletFiring 
+                        oldWorld.Bullets 
+                        ship
+                        newShipExtents
+                        timeNow
+                        input
+
+                Some({
+                    ShipExtents = newShipExtents
+                    WeaponReloadStartTimeOpt = reloadPenalty
+                }),
+                bullets
 
     let bombs = 
         ConsiderDroppingBombs oldWorld.Bombs oldWorld.Invaders timeNow elapsedTime 
@@ -163,19 +177,18 @@ let CalculateNextFrameState (oldWorld:GameWorld) (input:InputEventData) (timeNow
     let motherships  = ConsiderIntroducingMothership motherships elapsedTime
     let explosions   = ConsiderRemovingExplosions explosions timeNow
 
-    let newShip =
-        {
-            ShipExtents = newShipExtents
-            WeaponReloadStartTimeOpt = newReloadPenalty
-        }
+    let levelOver =
+        match newShip with 
+            | None -> true
+            | Some(ship) -> LevelOver ship.ShipExtents invaders bombs
 
-    let levelOver = LevelOver newShip.ShipExtents invaders bombs
-
-    let explosions =
-        if levelOver then 
-            ExplodeTheShip newShip explosions timeNow
+    let explosions, newShip =
+        if levelOver then
+            match newShip with
+                | None -> explosions, newShip
+                | Some(ship) -> (ExplodeTheShip ship explosions timeNow, None)
         else
-            explosions
+            explosions, newShip
 
     let newWorld =
         {
@@ -212,6 +225,8 @@ let CalculateNextPlaySuspendedState (oldWorld:GameWorld) (timeNow:TickCount) end
     let elapsedInEndState = timeNow --- endedAt
 
     if elapsedInEndState < TimeForEndState then
+
+        // TODO: re-use above
 
         let elapsedTime = timeNow --- oldWorld.GameStartTime
 

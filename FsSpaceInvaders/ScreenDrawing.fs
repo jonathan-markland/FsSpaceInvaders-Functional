@@ -20,8 +20,8 @@ let RenderWelcomeScreen render =
 
 
 
-let RenderGamePlayScreen render gameWorld playEndedYet =  // TODO: bool param!
-    RenderGameWorld render gameWorld playEndedYet
+let RenderGamePlayScreen render gameWorld =  // TODO: bool param!
+    RenderGameWorld render gameWorld
 
 
 
@@ -46,12 +46,12 @@ let RenderGameOverScreen render =
 let RenderScreen render screen =
     match screen with
         | WelcomeScreen(_)             -> RenderWelcomeScreen render
-        | GamePlayScreen(world)        -> RenderGamePlayScreen render world false
+        | GamePlayScreen(world)
         | GameOverAnimScreen(world,_)
         | LifeOverAnimScreen(world,_)
-        | NextLevelAminScreen(world,_) -> RenderGamePlayScreen render world true
+        | NextLevelAminScreen(world,_) -> RenderGamePlayScreen  render world
         | NextLevelScreen(_)           -> RenderNextLevelScreen render
-        | LifeOverScreen(_)            -> RenderLifeOverScreen render
-        | GameOverScreen(_)            -> RenderGameOverScreen render
+        | LifeOverScreen(_)            -> RenderLifeOverScreen  render
+        | GameOverScreen(_)            -> RenderGameOverScreen  render
 
 

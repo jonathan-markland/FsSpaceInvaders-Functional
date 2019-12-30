@@ -117,7 +117,9 @@ type GameWorld =
         Bullets:            Bullet list
         Bombs:              Bomb list
         Explosions:         Explosion list
-        Ship:               Ship
+
+        /// The Ship is 'None' when it has been destroyed.
+        Ship:               Ship option
     }
 
 
