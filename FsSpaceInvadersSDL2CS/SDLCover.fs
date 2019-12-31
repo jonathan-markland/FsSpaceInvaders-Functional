@@ -55,14 +55,14 @@ type RendererNativeInt =
 
 
 
-let CreateWindowAndRenderer width height =   // TODO: Should we drop back to WithNewMainWindowDo, and separate the creation of the renderer out?
+let CreateWindowAndRenderer windowTitle width height =   // TODO: Should we drop back to WithNewMainWindowDo, and separate the creation of the renderer out?
 
     let windowFlags =
         SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN + 
         SDL.SDL_WindowFlags.SDL_WINDOW_RESIZABLE
 
     let windowNativeInt =
-        SDL.SDL_CreateWindow("GAME", 100, 32, width, height, windowFlags)  // TODO: Calculate central position on the screen?
+        SDL.SDL_CreateWindow(windowTitle, 100, 32, width, height, windowFlags)  // TODO: Calculate central position on the screen?
 
     if windowNativeInt <> 0n then
 

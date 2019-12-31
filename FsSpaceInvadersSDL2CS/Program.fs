@@ -163,7 +163,7 @@ let GameMain () =
 
     // TODO:  Minor: We don't actually free the imageSet handles.
 
-    match CreateWindowAndRenderer 800 800 with   // TODO: constants
+    match CreateWindowAndRenderer "Space Invaders" 800 800 with   // TODO: constants
         | Some(mainWindow, renderer) ->
 
             // TODO: Move into library:
@@ -246,25 +246,10 @@ let GameMain () =
             
 
 
-            (*let result = WithNewMainWindowDo "Space Invaders" 256 256 (fun mainWindow ->
-
-                mainWindow |> WithWindowSurfaceDo (fun mainSurface ->*)
-
-                (*
-            match result with
-                | Error(message) ->
-                    printfn "%s" message
-                    1
-
-                | Ok(_) ->
-                    0*)
-
-
-
 
 let RendererPerformanceSpikeMain () =
 
-    match CreateWindowAndRenderer 1920 1080 with   // TODO: constants
+    match CreateWindowAndRenderer "Performance spike" 1920 1080 with   // TODO: constants
         | Some(mainWindow, renderer) ->
 
             let backingTexture = { TextureNativeInt = SDL.SDL_CreateTexture(renderer.RendererNativeInt, SDL.SDL_PIXELFORMAT_RGBA8888, int SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, 256, 256) }
@@ -307,7 +292,7 @@ let RendererPerformanceSpikeMain () =
 
 let RendererWithTimerSpikeMain () =
 
-    match CreateWindowAndRenderer 1920 1080 with   // TODO: constants
+    match CreateWindowAndRenderer "Renderer and timer spike" 1920 1080 with   // TODO: constants
         | Some(mainWindow, renderer) ->
 
             let backingTexture = { TextureNativeInt = SDL.SDL_CreateTexture(renderer.RendererNativeInt, SDL.SDL_PIXELFORMAT_RGBA8888, int SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, 256, 256) }
