@@ -83,6 +83,13 @@ This is the main executable.
 
 This has direct dependencies on the SDL2 DLL and the C# "SDL2-CS" interop library.
 
+The SDL2-CS interop library must be placed in the parent of this solution's folder,
+see the <Reference>:
+
+    <Reference Include="SDL2-CS">
+      <HintPath>..\..\SDL2-CS\bin\Debug\SDL2-CS.dll</HintPath>
+    </Reference>
+
 This creates a window and renderer using SDL2, and provides the graphics images
 for the game.
 
