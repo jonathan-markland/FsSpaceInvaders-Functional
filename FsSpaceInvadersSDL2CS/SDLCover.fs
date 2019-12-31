@@ -4,30 +4,49 @@ module SDLCover
 open SDL2
 open Fonts
 
+
+/// SDL2 library initialisation handling.
+let WithSdl2Do f =
+    try
+        let initResult = SDL.SDL_Init(SDL.SDL_INIT_TIMER)
+        if initResult = 0 then
+            Some(f ())
+        else
+            None
+    with 
+        | :? System.BadImageFormatException ->
+            None
+
+
+/// SDL Window handle.
 [<Struct>]
 type WindowNativeInt =
     {
         WindowNativeInt: nativeint
     }
 
+/// SDL BMP image handle.
 [<Struct>]
 type BMPNativeInt =
     {
         BMPNativeInt: nativeint
     }
 
+/// SDL Surface handle.
 [<Struct>]
 type SurfaceNativeInt =
     {
         SurfaceNativeInt: nativeint
     }
 
+/// SDL Texture handle.
 [<Struct>]
 type TextureNativeInt =
     {
         TextureNativeInt: nativeint
     }
 
+/// SDL Renderer handle.
 [<Struct>]
 type RendererNativeInt =
     {
@@ -144,62 +163,25 @@ let MakeFontFromBMP { RendererNativeInt=renderer } { BMPNativeInt=bmp } =
         None
 
 
-
-
-
-
-
-let UpdateWindowSurface {WindowNativeInt=h} =
-    SDL.SDL_UpdateWindowSurface h |> ignore
-
-let WithNewMainWindowDo windowTitleString windowWidth windowHeight operation =
-    
-    let window = 
-        SDL.SDL_CreateWindow(
-            windowTitleString, 
-            100, 100, 
-            windowWidth, windowHeight, 
-            SDL.SDL_WindowFlags.SDL_WINDOW_SHOWN)
-
-    if window = nativeint 0 then
-        Error (sprintf "Window could not be created! SDL_Error: %s\n" (SDL.SDL_GetError ()))
-    else
-        try
-            let operationResult = operation {WindowNativeInt = window}
-            SDL.SDL_DestroyWindow(window)
-            Ok (operationResult)
-        with e ->
-            Error (e.Message)
-
-
-
-let WithWindowSurfaceDo operation {WindowNativeInt=wh} =
-
-    let windowSurface = SDL.SDL_GetWindowSurface(wh)
-
-    if windowSurface = 0n then
-        Error (sprintf "Window surface could not be obtained! SDL_Error: %s\n" (SDL.SDL_GetError ()))
-    else
-        Ok (operation {SurfaceNativeInt = windowSurface})
-
-
-
 /// Draw a BMPSourceImage onto a surface at a given position.
-let DrawImage {RendererNativeInt=renderer} (image:BMPSourceImage) left top =
+let DrawImage renderer image left top =
+    let {RendererNativeInt=renderer} = renderer
     let mutable dstRect = ToSdlRect left top image.SourceRect.w image.SourceRect.h
     let mutable srcRect = image.SourceRect
     // SDL.SDL_BlitSurface (image.ImageHandle.BMPNativeInt, &srcRect, screenSurface, &dstRect) |> ignore
     SDL.SDL_RenderCopy(renderer, image.TextureHandle.TextureNativeInt, &srcRect, &dstRect) |> ignore
 
 /// Draw part of a BMPImage onto a surface at a given position.
-let DrawSubImage {RendererNativeInt=renderer} (texture:TextureNativeInt) srcleft srctop srcwidth srcheight dstleft dsttop dstwidth dstheight =
+let DrawSubImage renderer texture srcleft srctop srcwidth srcheight dstleft dsttop dstwidth dstheight =
+    let {RendererNativeInt=renderer} = renderer
     let mutable dstRect = ToSdlRect dstleft dsttop dstwidth dstheight
     let mutable srcRect = ToSdlRect srcleft srctop srcwidth srcheight
     // SDL.SDL_BlitSurface (imageHandle.BMPNativeInt, &srcRect, screenSurface, &dstRect) |> ignore
     SDL.SDL_RenderCopy(renderer, texture.TextureNativeInt, &srcRect, &dstRect) |> ignore
 
 /// Draw a filled rectangle onto the surface at given position in given colour
-let DrawFilledRectangle {RendererNativeInt=renderer} left top right bottom (colourRGB:uint32) =
+let DrawFilledRectangle renderer left top right bottom (colourRGB:uint32) =
+    let {RendererNativeInt=renderer} = renderer
     let mutable rect = ToSdlRect left top (right-left) (bottom-top)
     // SDL.SDL_FillRect (screenSurface, &rect, fillColour) |> ignore
     SDL.SDL_SetRenderDrawColor(
@@ -226,32 +208,25 @@ let DrawTextString renderer x y message textHAlign textVAlign (fontDefinition:Fo
     LayOutMonospaceFontTextString drawCharImage chWidth chHeight x y message textHAlign textVAlign
 
 
-
-let WithSdl2Do f =
-    try
-        let initResult = SDL.SDL_Init(SDL.SDL_INIT_TIMER)
-        if initResult = 0 then
-            Some(f ())
-        else
-            None
-    with 
-        | :? System.BadImageFormatException ->
-            None
-
-
-let SetRenderTargetToScreen { RendererNativeInt=renderer } =
+let SetRenderTargetToScreen renderer =
+    let { RendererNativeInt=renderer } = renderer
     SDL.SDL_SetRenderTarget(renderer, 0n) |> ignore
 
 
-let SetRenderTargetToTexture { RendererNativeInt=renderer } { TextureNativeInt=texture } =
+let SetRenderTargetToTexture renderer texture =
+    let { RendererNativeInt=renderer } = renderer
+    let { TextureNativeInt=texture } = texture
     SDL.SDL_SetRenderTarget(renderer, texture) |> ignore
 
 
-let RenderCopyToFullTarget { RendererNativeInt=renderer } { TextureNativeInt=texture } =
+let RenderCopyToFullTarget renderer texture =
+    let { RendererNativeInt=renderer } = renderer
+    let { TextureNativeInt=texture } = texture
     SDL.SDL_RenderCopy(renderer, texture, 0n, 0n) |> ignore
 
 
-let Present {RendererNativeInt=renderer} =
+let Present renderer =
+    let { RendererNativeInt=renderer } = renderer
     SDL.SDL_RenderPresent(renderer)
 
 
