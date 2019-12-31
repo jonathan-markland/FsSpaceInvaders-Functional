@@ -125,11 +125,12 @@ type GameWorld =
 
 
 type Screen =
-    | WelcomeScreen       of hiScore:uint32
-    | GamePlayScreen      of GameWorld
-    | LifeOverAnimScreen  of GameWorld * startTime:TickCount
-    | LifeOverScreen      of GameWorld
-    | NextLevelAminScreen of GameWorld * startTime:TickCount
-    | NextLevelScreen     of GameWorld
-    | GameOverAnimScreen  of GameWorld * startTime:TickCount
-    | GameOverScreen      of GameWorld
+    | WelcomeScreen                    of hiScore:uint32
+    | GamePlayScreen                   of GameWorld
+    | LifeOverResidualAnimationScreen  of GameWorld * screenEntryTime:TickCount
+    | LifeOverCardScreen               of GameWorld
+    | NextLevelResidualAnimationScreen of GameWorld * screenEntryTime:TickCount
+    | NextLevelCardScreen              of GameWorld
+    | GameOverResidualAnimationScreen  of GameWorld * screenEntryTime:TickCount
+    | GameOverCardScreen               of GameWorld
+

@@ -20,41 +20,41 @@ let CalculateNextScreenState (currentState:Screen) (input:InputEventData) (timeN
         | GamePlayScreen(world) ->
             match CalculateNextFrameState world input timeNow with
                 | GameContinuing(newWorld) -> GamePlayScreen(newWorld)
-                | PlayerWon(newWorld)      -> NextLevelAminScreen(newWorld,timeNow)
+                | PlayerWon(newWorld)      -> NextLevelResidualAnimationScreen(newWorld,timeNow)
                 | PlayerLost(newWorld)     -> 
                     if world.LevelAndLives.Lives > 0u then
-                        LifeOverAnimScreen(newWorld,timeNow)
+                        LifeOverResidualAnimationScreen(newWorld,timeNow)
                     else
-                        GameOverAnimScreen(newWorld,timeNow)
+                        GameOverResidualAnimationScreen(newWorld,timeNow)
 
-        | NextLevelAminScreen(world,endedAt) ->
-            match CalculateNextPlaySuspendedState world timeNow endedAt with
-                | AnimationContinuing(newWorld) -> NextLevelAminScreen(newWorld,endedAt)
-                | AnimationFinished(newWorld) -> NextLevelScreen(newWorld)
+        | NextLevelResidualAnimationScreen(world,screenEntryTime) ->
+            match CalculateNextPlaySuspendedState world timeNow screenEntryTime with
+                | AnimationContinuing(newWorld) -> NextLevelResidualAnimationScreen(newWorld,screenEntryTime)
+                | AnimationFinished(newWorld) -> NextLevelCardScreen(newWorld)
 
-        | NextLevelScreen(world) ->
+        | NextLevelCardScreen(world) ->
             if input.FireJustPressed then
                 GamePlayScreen(world |> NextLevelGameWorld timeNow)
             else
                 currentState
 
-        | LifeOverAnimScreen(world,endedAt) ->
-            match CalculateNextPlaySuspendedState world timeNow endedAt with
-                | AnimationContinuing(newWorld) -> LifeOverAnimScreen(newWorld,endedAt)
-                | AnimationFinished(newWorld) -> LifeOverScreen(newWorld)
+        | LifeOverResidualAnimationScreen(world,screenEntryTime) ->
+            match CalculateNextPlaySuspendedState world timeNow screenEntryTime with
+                | AnimationContinuing(newWorld) -> LifeOverResidualAnimationScreen(newWorld,screenEntryTime)
+                | AnimationFinished(newWorld) -> LifeOverCardScreen(newWorld)
 
-        | LifeOverScreen(world) ->
+        | LifeOverCardScreen(world) ->
             if input.FireJustPressed then
                 GamePlayScreen(world |> NextLifeGameWorld timeNow)
             else
                 currentState
 
-        | GameOverAnimScreen(world,endedAt) ->
-            match CalculateNextPlaySuspendedState world timeNow endedAt with
-                | AnimationContinuing(newWorld) -> GameOverAnimScreen(newWorld,endedAt)
-                | AnimationFinished(newWorld) -> GameOverScreen(newWorld)
+        | GameOverResidualAnimationScreen(world,screenEntryTime) ->
+            match CalculateNextPlaySuspendedState world timeNow screenEntryTime with
+                | AnimationContinuing(newWorld) -> GameOverResidualAnimationScreen(newWorld,screenEntryTime)
+                | AnimationFinished(newWorld) -> GameOverCardScreen(newWorld)
 
-        | GameOverScreen(world) ->
+        | GameOverCardScreen(world) ->
             if input.FireJustPressed then
                 WelcomeScreen(world.ScoreAndHiScore.HiScore)
             else

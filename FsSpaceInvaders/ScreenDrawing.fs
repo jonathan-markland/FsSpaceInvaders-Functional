@@ -47,11 +47,11 @@ let RenderScreen render screen =
     match screen with
         | WelcomeScreen(_)             -> RenderWelcomeScreen render
         | GamePlayScreen(world)
-        | GameOverAnimScreen(world,_)
-        | LifeOverAnimScreen(world,_)
-        | NextLevelAminScreen(world,_) -> RenderGamePlayScreen  render world
-        | NextLevelScreen(_)           -> RenderNextLevelScreen render
-        | LifeOverScreen(_)            -> RenderLifeOverScreen  render
-        | GameOverScreen(_)            -> RenderGameOverScreen  render
+        | GameOverResidualAnimationScreen(world,_)
+        | LifeOverResidualAnimationScreen(world,_)
+        | NextLevelResidualAnimationScreen(world,_) -> RenderGamePlayScreen  render world
+        | NextLevelCardScreen(_)           -> RenderNextLevelScreen render
+        | LifeOverCardScreen(_)            -> RenderLifeOverScreen  render
+        | GameOverCardScreen(_)            -> RenderGameOverScreen  render
 
 
