@@ -173,7 +173,7 @@ let GameMain () =
 
             let imageSet = LoadSpaceInvadersImages renderer ""
 
-            match MakeFontFromBMP renderer imageSet.Font.ImageHandle with
+            match MakeNumCapsFontFromBMP imageSet.Font with
                 | None -> 
                     0
                 | Some(fontDefinition) ->
@@ -273,7 +273,7 @@ let RendererPerformanceSpikeMain () =
 
             let imageSet = LoadSpaceInvadersImages renderer ""
 
-            match MakeFontFromBMP renderer imageSet.Font.ImageHandle with
+            match MakeNumCapsFontFromBMP imageSet.Font with
                 | None -> 
                     0
                 | Some(fontDefinition) ->
@@ -322,7 +322,7 @@ let RendererWithTimerSpikeMain () =
 
             let imageSet = LoadSpaceInvadersImages renderer ""
 
-            match MakeFontFromBMP renderer imageSet.Font.ImageHandle with
+            match MakeNumCapsFontFromBMP imageSet.Font with
                 | None -> 
                     0
                 | Some(fontDefinition) ->

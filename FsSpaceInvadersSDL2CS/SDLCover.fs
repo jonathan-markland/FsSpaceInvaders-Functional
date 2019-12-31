@@ -137,30 +137,32 @@ let LoadBMPAndPrepareForRenderer renderer fullPath =
         | None -> None
 
 
-
-type FontDefinition =  // TODO: rename NumCapsFont
+/// A "NumCaps" font consists of digits 0..9 followed by capital letter A..Z,
+/// stored as bitmap image.
+type NumCapsFontDefinition =
     {
-        FontImageHandle:  BMPNativeInt
-        FontTextureNativeInt: TextureNativeInt
-        CharWidth:        int
-        CharHeight:       int
+        FontImage:  BMPSourceImage
+        CharWidth:  int
+        CharHeight: int
     }
 
+/// Make a "Num Caps" font from a previously-loaded BMPSourceImage.
+let MakeNumCapsFontFromBMP (bmpSourceImage:BMPSourceImage) =
 
-let MakeFontFromBMP { RendererNativeInt=renderer } { BMPNativeInt=bmp } =
+    let numGlyphs = 36
 
-    // TODO:  Use LoadBMPAndPrepareForRenderer for this font
+    let { ImageHandle=_ ; TextureHandle=_ ; SourceRect=r } = bmpSourceImage
 
-    let texture = SDL.SDL_CreateTextureFromSurface(renderer,bmp)
-    if texture <> 0n then
-        Some({
-            FontImageHandle      = { BMPNativeInt=bmp }
-            FontTextureNativeInt = { TextureNativeInt=texture }
-            CharWidth  = 6  // TODO
-            CharHeight = 8  // TODO
-        })
+    if r.w % numGlyphs = 0 then
+        Some(
+            {
+                FontImage  = bmpSourceImage
+                CharWidth  = r.w / numGlyphs
+                CharHeight = r.h
+            })
     else
         None
+
 
 
 /// Draw a BMPSourceImage onto a surface at a given position.
@@ -193,11 +195,11 @@ let DrawFilledRectangle renderer left top right bottom (colourRGB:uint32) =
     SDL.SDL_RenderFillRect(renderer, &rect) |> ignore
 
 /// Draw text at given position in given font, with given alignment.
-let DrawTextString renderer x y message textHAlign textVAlign (fontDefinition:FontDefinition) =
+let DrawTextString renderer x y message textHAlign textVAlign (fontDefinition:NumCapsFontDefinition) =
 
     let chWidth  = fontDefinition.CharWidth
     let chHeight = fontDefinition.CharHeight
-    let texture  = fontDefinition.FontTextureNativeInt
+    let texture  = fontDefinition.FontImage.TextureHandle
 
     let drawCharImage charIndex x y =
         DrawSubImage 
