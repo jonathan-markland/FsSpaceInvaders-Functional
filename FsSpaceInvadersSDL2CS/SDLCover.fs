@@ -1,36 +1,6 @@
 ﻿/// A cover for some things in the the SDL2CS, to give stronger typing from the F# viewpoint.
 module SDLCover
 
-// TODO:  https://stackoverflow.com/questions/33402909/sdl-renderpresent-vs-sdl-updatewindowsurface
-
-(*
-If you store your images in RAM and use the CPU for rendering(this is called software rendering) you use SDL_UpdateWindowSurface.
-By calling this function you tell the CPU to update the screen and draw using software rendering.
-You can store your textures in RAM by using SDL_Surface, but software rendering is inefficent. You can give draw calls by using SDL_BlitSurface.
-SDL_UpdateWindowSurface is equivalent to the SDL 1.2 API SDL_Flip().
-On the other side when you use the GPU to render textures and you store your texture on the GPU(this is called hardware accelerated rendering), which you should, you use SDL_RenderPresent.
-This function tells the GPU to render to the screen.
-You store texture on the GPU using SDL_Texture. When using this you can give draw calls by using SDL_RenderCopy or if you want transformations SDL_RenderCopyEx
-Therefore, when using SDL's rendering API, one does all drawing intended for the frame, and then calls this function once per frame to present the final drawing to the user.
-You should you use hardware rendering it's far more efficent, than software rendering! Even if the user running the program hasn't got a GPU (which is rare, because most CPU's have an integrated GPU) SDL will switch to software rendering by it self!
-By the way you can load an image as SDL_Texture without the need to load an image as an SDL_Surface and convert it to an SDL_Texture using the SDL_image library, which you should because it supports several image formats not just BMP, like pure SDL. (SDL_image is made by the creators of SDL)
-Just use the IMG_LoadTexture from SDL_image!
-
-share
-improve this answer
-edited Oct 29 '15 at 11:07 
-
-
-answered Oct 29 '15 at 10:37 
-
-kovacsmarcell 
-2111
-1 silver badge
-8
-8 bronze badges
- 
- *)
-
 open SDL2
 open Fonts
 
@@ -94,9 +64,8 @@ let CreateWindowAndRenderer width height =   // TODO: Should we drop back to Wit
 
 
 
-
+/// Convenient constructor for an SDL_Rect.
 let ToSdlRect x y w h =
-
     let mutable r = SDL.SDL_Rect()
     r.x <- x
     r.y <- y
@@ -106,6 +75,7 @@ let ToSdlRect x y w h =
 
 
 
+/// Load a BMP file.  Only returns a value if load was successful.
 let LoadBMP filePath =
     let handle = SDL.SDL_LoadBMP(filePath)
     if handle = nativeint 0 then
@@ -122,15 +92,18 @@ type BMPSourceImage =
         SourceRect:    SDL.SDL_Rect
     }
 
-let BMPImagePreparedForRenderer rendererNativeInt { BMPNativeInt = bmp } =
+let BMPImagePreparedForRenderer (renderer:RendererNativeInt) (bmp:BMPNativeInt) =
+
+    let { RendererNativeInt = rendererNativeInt } = renderer
+    let { BMPNativeInt = bmpNativeInt } = bmp
 
     let t = typeof<SDL.SDL_Surface>
-    let s = (System.Runtime.InteropServices.Marshal.PtrToStructure(bmp, t)) :?> SDL.SDL_Surface
+    let s = (System.Runtime.InteropServices.Marshal.PtrToStructure(bmpNativeInt, t)) :?> SDL.SDL_Surface
 
-    let texture = SDL.SDL_CreateTextureFromSurface(rendererNativeInt,bmp)
+    let texture = SDL.SDL_CreateTextureFromSurface(rendererNativeInt,bmpNativeInt)
     if texture <> 0n then
         Some({
-            ImageHandle   = { BMPNativeInt=bmp }
+            ImageHandle   = { BMPNativeInt=bmpNativeInt }
             TextureHandle = { TextureNativeInt=texture }
             SourceRect    = ToSdlRect 0 0 s.w s.h
         })
@@ -138,8 +111,15 @@ let BMPImagePreparedForRenderer rendererNativeInt { BMPNativeInt = bmp } =
         None
 
 
+/// Load BMP file and prepare it for the renderer as a texture:
+let LoadBMPAndPrepareForRenderer renderer fullPath =
+    match LoadBMP fullPath with
+        | Some(file) -> BMPImagePreparedForRenderer renderer file
+        | None -> None
 
-type FontDefinition =
+
+
+type FontDefinition =  // TODO: rename NumCapsFont
     {
         FontImageHandle:  BMPNativeInt
         FontTextureNativeInt: TextureNativeInt
@@ -149,6 +129,8 @@ type FontDefinition =
 
 
 let MakeFontFromBMP { RendererNativeInt=renderer } { BMPNativeInt=bmp } =
+
+    // TODO:  Use LoadBMPAndPrepareForRenderer for this font
 
     let texture = SDL.SDL_CreateTextureFromSurface(renderer,bmp)
     if texture <> 0n then

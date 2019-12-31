@@ -25,19 +25,13 @@ type SpaceInvadersBMPs =
   
   
 
-let LoadSpaceInvadersImages {RendererNativeInt=renderer} rootPath =
+let LoadSpaceInvadersImages (renderer:RendererNativeInt) rootPath =
 
     let fromFile name = 
         let fullPath = Path.Combine(Path.Combine(rootPath, "Images"), name) + ".bmp"
-        match LoadBMP fullPath with
-            | Some(file) -> 
-                match BMPImagePreparedForRenderer renderer file with
-                    | Some(loadedImage) ->
-                        loadedImage
-                    | None ->
-                        failwith (sprintf "Space invaders could not start because file '%s' could not be translated to an SDL texture." fullPath)
-            | None -> 
-                failwith (sprintf "Space invaders could not start because file '%s' is missing." fullPath)
+        match LoadBMPAndPrepareForRenderer renderer fullPath with
+            | Some(imageRecord) -> imageRecord
+            | None -> failwith (sprintf "Space invaders could not start because file '%s' is missing or has invalid content." fullPath)
     {
         Ship        = fromFile "Ship"
         RedInvader  = fromFile "RedInvader"
