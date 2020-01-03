@@ -232,4 +232,21 @@ let Present renderer =
     SDL.SDL_RenderPresent(renderer)
 
 
+/// Create an RGB 8888 texture for the given renderer.
+/// This implies requiring SDL_TEXTUREACCESS_TARGET.
+let CreateRgb8888TextureForRenderer renderer textureWidth textureHeight =
+    let backingTexture = 
+        { 
+            TextureNativeInt = 
+                SDL.SDL_CreateTexture(
+                    renderer.RendererNativeInt, 
+                    SDL.SDL_PIXELFORMAT_RGBA8888, 
+                    int SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, 
+                    textureWidth, 
+                    textureHeight) 
+        }
+    if backingTexture.TextureNativeInt = 0n then
+        None
+    else
+        Some(backingTexture)
     

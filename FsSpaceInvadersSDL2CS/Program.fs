@@ -166,87 +166,87 @@ let GameMain () =
     match CreateWindowAndRenderer "Space Invaders" 800 800 with   // TODO: constants
         | Some(mainWindow, renderer) ->
 
-            // TODO: Move into library:
-            let backingTexture = { TextureNativeInt = SDL.SDL_CreateTexture(renderer.RendererNativeInt, SDL.SDL_PIXELFORMAT_RGBA8888, int SDL.SDL_TextureAccess.SDL_TEXTUREACCESS_TARGET, 256, 256) }
-            if backingTexture.TextureNativeInt = 0n then
-                failwith "" // TODO: sort out
+            let backingTexture = CreateRgb8888TextureForRenderer renderer 256 256
+            match backingTexture with
+                | None -> failwith "Cannot create backing texture."
+                | Some(backingTexture) ->
 
-            let imageSet = LoadSpaceInvadersImages renderer ""
+                    let imageSet = LoadSpaceInvadersImages renderer ""
 
-            match MakeNumCapsFontFromBMP imageSet.Font with
-                | None -> 
-                    0
-                | Some(fontDefinition) ->
-                    let mutable screenState = CompletelyNewGameStateWithResetHiScore ()
+                    match MakeNumCapsFontFromBMP imageSet.Font with
+                        | None -> 
+                            0
+                        | Some(fontDefinition) ->
+                            let mutable screenState = CompletelyNewGameStateWithResetHiScore ()
  
-                    let timerID = 
-                        SDL.SDL_AddTimer(20u,new SDL.SDL_TimerCallback(TimerCallback),0n)
+                            let timerID =   // TODO: Push into library?
+                                SDL.SDL_AddTimer(20u,new SDL.SDL_TimerCallback(TimerCallback),0n)
             
-                    if timerID = 0 then
-                        failwith "Failed to install the gameplay timer."
+                            if timerID = 0 then
+                                failwith "Failed to install the gameplay timer."
 
-                    let renderFunction = (RenderToSdl imageSet fontDefinition renderer)
+                            let renderFunction = (RenderToSdl imageSet fontDefinition renderer)
 
-                    let mutable leftHeld = false
-                    let mutable rightHeld = false
-                    let mutable tickCount = 0u
+                            let mutable leftHeld = false
+                            let mutable rightHeld = false
+                            let mutable tickCount = 0u
 
-                    let mutable fireJustPressed = false  // until discovered otherwise
-                    let mutable fireWaitingRelease = false
+                            let mutable fireJustPressed = false  // until discovered otherwise
+                            let mutable fireWaitingRelease = false
 
-                    let mutable stop = false // TODO: hack
+                            let mutable stop = false // TODO: hack
 
-                    let mutable quit = false
-                    while quit = false do
+                            let mutable quit = false
+                            while quit = false do
 
-                        let mutable event = new SDL.SDL_Event ()
+                                let mutable event = new SDL.SDL_Event ()
 
-                        while (SDL.SDL_WaitEvent (&event)) <> 0 && not quit do   // SDL_PollEvent
+                                while (SDL.SDL_WaitEvent (&event)) <> 0 && not quit do   // SDL_PollEvent
 
-                            let msg = event.``type``
+                                    let msg = event.``type``
 
-                            if msg = SDL.SDL_EventType.SDL_QUIT then 
-                                quit <- true
+                                    if msg = SDL.SDL_EventType.SDL_QUIT then 
+                                        quit <- true
 
-                            else if msg = SDL.SDL_EventType.SDL_KEYDOWN then
-                                match event.key.keysym.scancode with
-                                    | SDL.SDL_Scancode.SDL_SCANCODE_LEFT  -> leftHeld <- true
-                                    | SDL.SDL_Scancode.SDL_SCANCODE_RIGHT -> rightHeld <- true
-                                    | SDL.SDL_Scancode.SDL_SCANCODE_Z     -> 
-                                        if fireWaitingRelease 
-                                        then () 
-                                        else 
-                                            fireJustPressed <- true
-                                            fireWaitingRelease <- true
-                                    | _ -> ()
+                                    else if msg = SDL.SDL_EventType.SDL_KEYDOWN then
+                                        match event.key.keysym.scancode with
+                                            | SDL.SDL_Scancode.SDL_SCANCODE_LEFT  -> leftHeld <- true
+                                            | SDL.SDL_Scancode.SDL_SCANCODE_RIGHT -> rightHeld <- true
+                                            | SDL.SDL_Scancode.SDL_SCANCODE_Z     -> 
+                                                if fireWaitingRelease 
+                                                then () 
+                                                else 
+                                                    fireJustPressed <- true
+                                                    fireWaitingRelease <- true
+                                            | _ -> ()
 
-                            else if msg = SDL.SDL_EventType.SDL_KEYUP then
-                                match event.key.keysym.scancode with
-                                    | SDL.SDL_Scancode.SDL_SCANCODE_LEFT  -> leftHeld <- false
-                                    | SDL.SDL_Scancode.SDL_SCANCODE_RIGHT -> rightHeld <- false
-                                    | SDL.SDL_Scancode.SDL_SCANCODE_Z     -> fireWaitingRelease <- false
-                                    | _ -> ()
+                                    else if msg = SDL.SDL_EventType.SDL_KEYUP then
+                                        match event.key.keysym.scancode with
+                                            | SDL.SDL_Scancode.SDL_SCANCODE_LEFT  -> leftHeld <- false
+                                            | SDL.SDL_Scancode.SDL_SCANCODE_RIGHT -> rightHeld <- false
+                                            | SDL.SDL_Scancode.SDL_SCANCODE_Z     -> fireWaitingRelease <- false
+                                            | _ -> ()
 
-                            else if msg = SDL.SDL_EventType.SDL_USEREVENT then
-                                // ~ This is the AddTimer event handler 
-                                tickCount <- tickCount + 1u
-                                let inputEventData = { LeftHeld=leftHeld ; RightHeld=rightHeld ; FireJustPressed=fireJustPressed }
-                                let nextState = CalculateNextScreenState screenState inputEventData (TickCount(tickCount))
-                                SetRenderTargetToTexture renderer backingTexture
-                                RenderScreen renderFunction nextState
-                                SetRenderTargetToScreen renderer
-                                RenderCopyToFullTarget renderer backingTexture
-                                Present renderer
-                                fireJustPressed <- false
-                                screenState <- nextState
-                    1
+                                    else if msg = SDL.SDL_EventType.SDL_USEREVENT then
+                                        // ~ This is the AddTimer event handler 
+                                        tickCount <- tickCount + 1u
+                                        let inputEventData = { LeftHeld=leftHeld ; RightHeld=rightHeld ; FireJustPressed=fireJustPressed }
+                                        let nextState = CalculateNextScreenState screenState inputEventData (TickCount(tickCount))
+                                        SetRenderTargetToTexture renderer backingTexture
+                                        RenderScreen renderFunction nextState
+                                        SetRenderTargetToScreen renderer
+                                        RenderCopyToFullTarget renderer backingTexture
+                                        Present renderer
+                                        fireJustPressed <- false
+                                        screenState <- nextState
+                            1
 
         | None ->
             0
             
 
 
-
+(*
 let RendererPerformanceSpikeMain () =
 
     match CreateWindowAndRenderer "Performance spike" 1920 1080 with   // TODO: constants
@@ -339,7 +339,7 @@ let RendererWithTimerSpikeMain () =
 
         | None ->
             0
-
+*)
 
 
 
