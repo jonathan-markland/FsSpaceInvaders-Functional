@@ -34,7 +34,7 @@ let CalculateNextScreenState (currentState:Screen) (input:InputEventData) (timeN
 
         | NextLevelCardScreen(world) ->
             if input.FireJustPressed then
-                GamePlayScreen(world |> NextLevelGameWorld timeNow)
+                GamePlayScreen(world |> NextLevelGameWorld)
             else
                 currentState
 
@@ -45,7 +45,7 @@ let CalculateNextScreenState (currentState:Screen) (input:InputEventData) (timeN
 
         | LifeOverCardScreen(world) ->
             if input.FireJustPressed then
-                GamePlayScreen(world |> NextLifeGameWorld timeNow)
+                GamePlayScreen(world |> NextLifeGameWorld)
             else
                 currentState
 

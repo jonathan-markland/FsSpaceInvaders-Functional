@@ -86,12 +86,12 @@ let NewGameWorld hiScore (timeNow:TickCount) : GameWorld =
 
 /// Given a world where the player has just lost a life,
 /// return a new world for the next life.
-let NextLifeGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
+let NextLifeGameWorld (outgoing:GameWorld) : GameWorld =
 
     let oldStats = outgoing.LevelAndLives
 
     {
-        GameStartTime   = timeNow
+        GameStartTime   = outgoing.GameStartTime
         LevelAndLives   = { oldStats with Lives = oldStats.Lives - 1u }
         ScoreAndHiScore = outgoing.ScoreAndHiScore
         Motherships     = outgoing.Motherships
@@ -106,12 +106,12 @@ let NextLifeGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
 
 /// Given a world where the player has just won the level,
 /// return a new world for the next level.
-let NextLevelGameWorld (timeNow:TickCount) (outgoing:GameWorld) : GameWorld =
+let NextLevelGameWorld (outgoing:GameWorld) : GameWorld =
 
     let oldStats   = outgoing.LevelAndLives
 
     {
-        GameStartTime   = timeNow
+        GameStartTime   = outgoing.GameStartTime
         LevelAndLives   = { Lives = oldStats.Lives + 1u ; Level = oldStats.Level + 1u }
         ScoreAndHiScore = outgoing.ScoreAndHiScore |> IncrementScoreBy ScoreForNextLevel
         Motherships     = []

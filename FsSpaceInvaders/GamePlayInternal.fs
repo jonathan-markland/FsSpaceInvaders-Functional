@@ -70,6 +70,8 @@ let RandomInvader invadersList timeNow =  // TODO: This exhibits really bad game
             let selectedIndex = int (ticks % uint32 countLeft)
             Some(invadersList |> List.item selectedIndex)
 
+
+
 let MoveShip oldShipExtents (input:InputEventData) =
 
     let movementStep =  
@@ -83,6 +85,8 @@ let MoveShip oldShipExtents (input:InputEventData) =
             0<wu>
 
     oldShipExtents |> RectangleShuntedBy movementStep 0<wu>
+
+
 
 let ConsiderBulletFiring oldBullets (ship:Ship) shipExtents timeNow input =
 
@@ -108,6 +112,8 @@ let ConsiderBulletFiring oldBullets (ship:Ship) shipExtents timeNow input =
 
     ship.WeaponReloadStartTimeOpt |> ConsiderReloadPenalty |> CheckFireButton
 
+
+
 let ConsiderDroppingBombs oldBombs invaders timeNow elapsedTime =
 
     Every TimeForNewBombCheck elapsedTime oldBombs (fun state ->
@@ -120,6 +126,8 @@ let ConsiderDroppingBombs oldBombs invaders timeNow elapsedTime =
                 let updateBombsList = newBomb :: oldBombs
                 updateBombsList
     )
+
+
 
 let MoveBullets oldBulletsList =
 
@@ -134,6 +142,8 @@ let MoveBullets oldBulletsList =
 
     bulletsStillInPlay |> List.map ApplyUpwardMovementToBullet
 
+
+
 let MoveBombs oldBombsList =
 
     let ApplyDownwardMovementToBomb b =
@@ -147,6 +157,8 @@ let MoveBombs oldBombsList =
 
     bombsStillInPlay |> List.map ApplyDownwardMovementToBomb
 
+
+
 let WithAdditionalExplosionsFor listOfThings areaOfThing preExistingExplosions timeNow =
 
     preExistingExplosions |> List.append
@@ -157,6 +169,8 @@ let WithAdditionalExplosionsFor listOfThings areaOfThing preExistingExplosions t
                 StartTime        = timeNow
             }
         ))
+
+
 
 let ConsiderShotInvaders oldBullets oldInvaders oldExplosions timeNow =
 
@@ -171,6 +185,8 @@ let ConsiderShotInvaders oldBullets oldInvaders oldExplosions timeNow =
     let newExplosionsState = WithAdditionalExplosionsFor deadInvaders AreaOfInvader oldExplosions timeNow
 
     survivingBullets, survivingInvaders, newExplosionsState, scoreIncrease
+
+
 
 let ConsiderShotMothership oldBullets oldMotherships oldExplosions timeNow =
 
@@ -188,18 +204,19 @@ let ConsiderShotMothership oldBullets oldMotherships oldExplosions timeNow =
 
     survivingBullets, survivingMotherships, newExplosionsState, scoreIncrease
 
+
+
 let ConsiderRemovingExplosions oldExplosions timeNow =
 
     oldExplosions |> List.filter (fun e ->     // TODO: Prepare to return same list favouring no removals
         let elapsedSinceExplosionStarted = timeNow --- e.StartTime
         elapsedSinceExplosionStarted < TimeForWholeExplosion)
 
+
+
 let MoveInvaders oldInvaders elapsedTime =
  
     let (TickSpan(ticks)) = elapsedTime
-
-    // TODO: This accumulates strangely, resulting in invaders tending off-piste,
-    //       particularly around life loss sequences.
 
     let dx = if (ticks % (TimeForInvaderWiggle * 2u)) >= TimeForInvaderWiggle then InvaderWiggleStep  else -InvaderWiggleStep
     let dy = if (ticks % TimeForInvaderAdvance) = 0u then InvaderAdvanceStep else 0<wu>
@@ -216,6 +233,8 @@ let MoveInvaders oldInvaders elapsedTime =
         { invader with InvaderExtents = newExtents } 
     )
 
+
+
 let ConsiderIntroducingMothership elapsedTime oldMotherships =
 
     Every TimeForMothershipCheck elapsedTime oldMotherships (fun oldMotherships ->
@@ -223,6 +242,8 @@ let ConsiderIntroducingMothership elapsedTime oldMotherships =
         let newMothership = { MothershipExtents = { LeftW=x ; TopW=MotherShipTopY ; RightW=x+MothershipWidth ; BottomW=MotherShipTopY+MothershipHeight } }
         newMothership :: oldMotherships
     )
+
+
 
 let MoveMotherships oldMotherships =
 
@@ -243,6 +264,8 @@ let MoveMotherships oldMotherships =
     else
         movedMotherships
 
+
+
 let ExplodeTheShip oldShip oldExplosions timeNow =
 
     let shipExplosion = 
@@ -253,9 +276,13 @@ let ExplodeTheShip oldShip oldExplosions timeNow =
 
     shipExplosion :: oldExplosions
 
+
+
 let NoInvadersLeft (invaders:Invader list) =
 
     invaders.IsEmpty
+
+
 
 let LevelOver shipExtents invaders bombs =
 
