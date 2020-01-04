@@ -255,7 +255,7 @@ let MoveMotherships oldMotherships =
         )
 
     let atFinishPosition mothership =
-        mothership.MothershipExtents.RightW = (MothershipCentreEndX + MothershipWidth / 2)
+        mothership.MothershipExtents.RightW > (MothershipCentreEndX + MothershipWidth / 2)
 
     if movedMotherships |> List.exists atFinishPosition then
         let survivingMotherships =
