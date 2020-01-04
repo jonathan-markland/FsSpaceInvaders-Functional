@@ -27,20 +27,23 @@ type SpaceInvadersBMPs =
 
 let LoadSpaceInvadersImages (renderer:RendererNativeInt) rootPath =
 
-    let fromFile name = 
+    let fromFile transparencyColour name = 
         let fullPath = Path.Combine(Path.Combine(rootPath, "Images"), name) + ".bmp"
-        match LoadBMPAndPrepareForRenderer renderer fullPath with
+        match LoadBMPAndPrepareForRenderer renderer fullPath transparencyColour with
             | Some(imageRecord) -> imageRecord
             | None -> failwith (sprintf "Space invaders could not start because file '%s' is missing or has invalid content." fullPath)
+
+    let magenta = Some({ Red=255uy ; Green=0uy ; Blue=255uy })
+
     {
-        Ship        = fromFile "Ship"
-        RedInvader  = fromFile "RedInvader"
-        BlueInvader = fromFile "BlueInvader"
-        Bullet      = fromFile "Bullet"
-        Bomb        = fromFile "Bomb"
-        Mothership  = fromFile "Mothership"
-        Font        = fromFile "Font"
-        Explosion   = fromFile "Explosion"
+        Ship        = fromFile magenta "Ship"
+        RedInvader  = fromFile magenta "RedInvader"
+        BlueInvader = fromFile magenta "BlueInvader"
+        Bullet      = fromFile magenta "Bullet"
+        Bomb        = fromFile magenta "Bomb"
+        Mothership  = fromFile magenta "Mothership"
+        Font        = fromFile magenta "Font"
+        Explosion   = fromFile magenta "Explosion"
     }
 
 

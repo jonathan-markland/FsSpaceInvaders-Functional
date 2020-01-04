@@ -53,6 +53,21 @@ type RendererNativeInt =
         RendererNativeInt: nativeint
     }
 
+/// Red, Green, Blue triple.
+type RGB =
+    {
+        Red:   byte
+        Green: byte
+        Blue:  byte
+    }
+
+/// Extended BMP type supports optional transparency colour.
+type ExtendedBMP =
+    {
+        ExBMPNativeInt:      BMPNativeInt
+        TransparencyColour:  RGB option
+    }
+
 
 
 let CreateWindowAndRenderer windowTitle width height =   // TODO: Should we drop back to WithNewMainWindowDo, and separate the creation of the renderer out?
@@ -111,13 +126,21 @@ type BMPSourceImage =
         SourceRect:    SDL.SDL_Rect
     }
 
-let BMPImagePreparedForRenderer (renderer:RendererNativeInt) (bmp:BMPNativeInt) =
+let BMPImagePreparedForRenderer (renderer:RendererNativeInt) (exbmp:ExtendedBMP) =
 
     let { RendererNativeInt = rendererNativeInt } = renderer
-    let { BMPNativeInt = bmpNativeInt } = bmp
+    let { ExBMPNativeInt = { BMPNativeInt = bmpNativeInt } ; TransparencyColour = transp } = exbmp
 
     let t = typeof<SDL.SDL_Surface>
     let s = (System.Runtime.InteropServices.Marshal.PtrToStructure(bmpNativeInt, t)) :?> SDL.SDL_Surface
+
+    match transp with
+        | Some(rgb) ->
+            SDL.SDL_SetColorKey(
+                bmpNativeInt, 0x00001000 (*SDL_SRCCOLORKEY*),  // TODO: Is this constant seriously not defined in SDL2CS?
+                SDL.SDL_MapRGB(s.format, rgb.Red, rgb.Green, rgb.Blue)) |> ignore
+        | None ->
+            ()
 
     let texture = SDL.SDL_CreateTextureFromSurface(rendererNativeInt,bmpNativeInt)
     if texture <> 0n then
@@ -131,10 +154,16 @@ let BMPImagePreparedForRenderer (renderer:RendererNativeInt) (bmp:BMPNativeInt) 
 
 
 /// Load BMP file and prepare it for the renderer as a texture:
-let LoadBMPAndPrepareForRenderer renderer fullPath =
+let LoadBMPAndPrepareForRenderer renderer fullPath transparencyColour =
     match LoadBMP fullPath with
-        | Some(file) -> BMPImagePreparedForRenderer renderer file
         | None -> None
+        | Some(bmpNativeInt) -> 
+            let exbmp =
+                {
+                    ExBMPNativeInt = bmpNativeInt
+                    TransparencyColour = transparencyColour
+                }
+            BMPImagePreparedForRenderer renderer exbmp
 
 
 /// A "NumCaps" font consists of digits 0..9 followed by capital letter A..Z,
@@ -170,7 +199,6 @@ let DrawImage renderer image left top =
     let {RendererNativeInt=renderer} = renderer
     let mutable dstRect = ToSdlRect left top image.SourceRect.w image.SourceRect.h
     let mutable srcRect = image.SourceRect
-    // SDL.SDL_BlitSurface (image.ImageHandle.BMPNativeInt, &srcRect, screenSurface, &dstRect) |> ignore
     SDL.SDL_RenderCopy(renderer, image.TextureHandle.TextureNativeInt, &srcRect, &dstRect) |> ignore
 
 /// Draw part of a BMPImage onto a surface at a given position.
@@ -178,14 +206,12 @@ let DrawSubImage renderer texture srcleft srctop srcwidth srcheight dstleft dstt
     let {RendererNativeInt=renderer} = renderer
     let mutable dstRect = ToSdlRect dstleft dsttop dstwidth dstheight
     let mutable srcRect = ToSdlRect srcleft srctop srcwidth srcheight
-    // SDL.SDL_BlitSurface (imageHandle.BMPNativeInt, &srcRect, screenSurface, &dstRect) |> ignore
     SDL.SDL_RenderCopy(renderer, texture.TextureNativeInt, &srcRect, &dstRect) |> ignore
 
 /// Draw a filled rectangle onto the surface at given position in given colour
 let DrawFilledRectangle renderer left top right bottom (colourRGB:uint32) =
     let {RendererNativeInt=renderer} = renderer
     let mutable rect = ToSdlRect left top (right-left) (bottom-top)
-    // SDL.SDL_FillRect (screenSurface, &rect, fillColour) |> ignore
     SDL.SDL_SetRenderDrawColor(
         renderer, 
         uint8 (colourRGB >>> 16),
