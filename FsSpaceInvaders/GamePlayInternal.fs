@@ -138,7 +138,7 @@ let MoveBullets oldBulletsList =
         bullet.BulletExtents.TopW > BulletEndY
 
     let bulletsStillInPlay = 
-        oldBulletsList |> List.filter WhereBulletStillBelowTopmostPosition   // TODO: optimise for case where all are on screen still
+        oldBulletsList |> PlanetSavingListFilter WhereBulletStillBelowTopmostPosition   // TODO: optimise for case where all are on screen still
 
     bulletsStillInPlay |> List.map ApplyUpwardMovementToBullet
 
@@ -153,7 +153,7 @@ let MoveBombs oldBombsList =
         bomb.BombExtents.BottomW < BombFloorY
 
     let bombsStillInPlay = 
-        oldBombsList |> List.filter WhereBombStillAboveFloorPosition   // TODO: optimise for case where all are on screen still
+        oldBombsList |> PlanetSavingListFilter WhereBombStillAboveFloorPosition   // TODO: optimise for case where all are on screen still
 
     bombsStillInPlay |> List.map ApplyDownwardMovementToBomb
 
@@ -180,8 +180,8 @@ let ConsiderShotInvaders oldBullets oldInvaders oldExplosions timeNow =
             (oldInvaders |> WithAreasObtainedBy AreaOfInvader)
 
     let scoreIncrease      = uint32 (List.length deadInvaders) * ScoreForKillingInvader
-    let survivingInvaders  = oldInvaders |> List.filter (NotInList deadInvaders DogTagOfInvader)  // TODO: Prepare to return same list favouring no removals
-    let survivingBullets   = oldBullets |> List.filter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
+    let survivingInvaders  = oldInvaders |> PlanetSavingListFilter (NotInList deadInvaders DogTagOfInvader)  // TODO: Prepare to return same list favouring no removals
+    let survivingBullets   = oldBullets |> PlanetSavingListFilter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
     let newExplosionsState = WithAdditionalExplosionsFor deadInvaders AreaOfInvader oldExplosions timeNow
 
     survivingBullets, survivingInvaders, newExplosionsState, scoreIncrease
@@ -198,8 +198,8 @@ let ConsiderShotMothership oldBullets oldMotherships oldExplosions timeNow =
             (oldMotherships |> WithAreasObtainedBy AreaOfMothership)
 
     let scoreIncrease        = uint32 (List.length deadMotherships) * ScoreForKillingMothership
-    let survivingMotherships = oldMotherships |> List.filter (NotInList deadMotherships AreaOfMothership)  // TODO: Prepare to return same list favouring no removals
-    let survivingBullets     = oldBullets |> List.filter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
+    let survivingMotherships = oldMotherships |> PlanetSavingListFilter (NotInList deadMotherships AreaOfMothership)  // TODO: Prepare to return same list favouring no removals
+    let survivingBullets     = oldBullets |> PlanetSavingListFilter (NotInList deadBullets AreaOfBullet)  // TODO: Prepare to return same list favouring no removals
     let newExplosionsState   = WithAdditionalExplosionsFor deadMotherships AreaOfMothership oldExplosions timeNow
 
     survivingBullets, survivingMotherships, newExplosionsState, scoreIncrease
@@ -208,7 +208,7 @@ let ConsiderShotMothership oldBullets oldMotherships oldExplosions timeNow =
 
 let ConsiderRemovingExplosions oldExplosions timeNow =
 
-    oldExplosions |> List.filter (fun e ->     // TODO: Prepare to return same list favouring no removals
+    oldExplosions |> PlanetSavingListFilter (fun e ->     // TODO: Prepare to return same list favouring no removals
         let elapsedSinceExplosionStarted = timeNow --- e.StartTime
         elapsedSinceExplosionStarted < TimeForWholeExplosion)
 
@@ -252,17 +252,15 @@ let MoveMotherships oldMotherships =
     let movedMotherships = oldMotherships |> List.map (fun mothership ->
         let old = mothership.MothershipExtents
         { mothership with MothershipExtents = { old with LeftW = old.LeftW + dx ; RightW = old.RightW + dx } }
-        )
+    )
 
     let atFinishPosition mothership =
         mothership.MothershipExtents.RightW > (MothershipCentreEndX + MothershipWidth / 2)
 
-    if movedMotherships |> List.exists atFinishPosition then
-        let survivingMotherships =
-            movedMotherships |> List.filter (fun mothership -> not (mothership |> atFinishPosition))
-        survivingMotherships
-    else
-        movedMotherships
+    let survivingMotherships =
+        movedMotherships |> PlanetSavingListFilter (fun mothership -> not (mothership |> atFinishPosition))
+
+    survivingMotherships
 
 
 

@@ -13,3 +13,15 @@ let NotInList theList keySelector item =
 
         |> Option.isNone
 
+
+/// If all items in the list satisfy the predicate then
+/// just return the original list.  Otherwise, perform
+/// a List.filter to reduce the list to only those that
+/// satisfy the predicate.
+let PlanetSavingListFilter predicate theList =
+
+    if theList |> List.forall predicate then
+        theList
+    else
+        theList |> List.filter predicate
+
