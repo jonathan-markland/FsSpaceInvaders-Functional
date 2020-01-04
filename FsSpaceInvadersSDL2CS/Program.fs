@@ -1,6 +1,6 @@
-﻿open SDL2
+﻿open SDL2  // TODO: It would be nicer if SDLCover could provide everything.
 open System.IO
-open SDLCover // TODO: Move SDLCOver into a separate DLL for other programs.
+open SDLCover
 open GamePlayTypes
 open DrawingCommands
 open Rules

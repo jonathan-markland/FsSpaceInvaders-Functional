@@ -1,4 +1,4 @@
-﻿/// A cover for some things in the the SDL2CS, to give stronger typing from the F# viewpoint.
+/// A cover for some things in the the SDL2CS, to give stronger typing from the F# viewpoint.
 module SDLCover
 
 open SDL2

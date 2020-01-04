@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="SDLCover.fs" />
     <Content Include="Images\Explosion.bmp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -32,14 +31,12 @@
     <Content Include="Images\Bomb.bmp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="SDL2.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\FsAnyGame\FsAnyGame.fsproj" />
+    <ProjectReference Include="..\FsSDL2\FsSDL2.fsproj" />
     <ProjectReference Include="..\FsSpaceInvaders\FsSpaceInvaders.fsproj" />
   </ItemGroup>
 
